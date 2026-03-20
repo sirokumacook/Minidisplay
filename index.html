@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Display v5</title>
+    <title>Smart Display v6</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <style>
@@ -43,7 +43,6 @@
         @font-face { font-family: 'DefaultFontJa'; src: local('sans-serif'); }
         @font-face { font-family: 'DefaultFontEn'; src: local('Arial'); }
 
-        /* 全ての英語箇所に適用するクラス */
         .en-font {
             font-family: var(--font-en) !important;
         }
@@ -65,8 +64,6 @@
             border: 1px solid var(--glass-border-standard);
             box-shadow: var(--glass-shadow-standard);
             position: relative;
-            overflow: hidden;
-            transition: all 0.5s ease;
         }
 
         /* Liquid Glass スタイル */
@@ -82,36 +79,31 @@
         .curtain-overlay {
             position: absolute;
             top: 0;
-            left: -100%;
+            left: 0;
             width: 100%;
             height: 100%;
             background-color: var(--curtain-color);
             z-index: 9999;
             pointer-events: none;
+            transform: translateX(-100%);
         }
 
-        /* サイド時計 */
-        #side-ui-panel {
+        /* サイド時計コンテナ */
+        #side-ui-container {
             position: absolute;
             top: 20px;
             left: 20px;
+            z-index: 10;
             border-radius: 12px;
+            overflow: hidden; /* カーテンのはみ出しを防ぐ */
+        }
+
+        #side-ui-panel {
             padding: 10px 20px;
             display: flex;
             align-items: baseline;
-            z-index: 10;
-            
-            /* 表示・非表示アニメーション */
-            opacity: 0;
-            transform: translateY(-20px) scale(0.95);
-            transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
-                        transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
-                        background 0.5s, backdrop-filter 0.5s;
-        }
-
-        #side-ui-panel.show {
-            opacity: 1;
-            transform: translateY(0) scale(1);
+            opacity: 0; /* 初期非表示。カーテンの裏で0と1が切り替わる */
+            border-radius: inherit;
         }
 
         .side-time {
@@ -135,6 +127,7 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            overflow: hidden;
         }
 
         .mode-content {
@@ -369,16 +362,19 @@
 
     <div class="container">
         
-        <div id="side-ui-panel" class="glass-panel">
-            <div class="side-time en-font" id="side-time-display">00:00</div>
-            <div class="side-sec en-font" id="side-sec-display">00</div>
+        <div id="side-ui-container">
+            <div id="side-ui-panel" class="glass-panel">
+                <div class="side-time en-font" id="side-time-display">00:00</div>
+                <div class="side-sec en-font" id="side-sec-display">00</div>
+            </div>
+            <div class="curtain-overlay"></div>
         </div>
 
         <div id="main-ui-panel" class="glass-panel">
             
             <div id="mode-time" class="mode-content">
                 <div class="huge-clock-time en-font" id="main-time-display">00:00:00</div>
-                <div class="huge-clock-date en-font" id="main-date-display">1月1日(月)</div>
+                <div class="huge-clock-date en-font" id="main-date-display">MON, JAN 1</div>
             </div>
 
             <div id="mode-weather" class="mode-content">
@@ -475,7 +471,6 @@
     </div>
 
     <script>
-        // --- 設定管理 ---
         const DEFAULT_SETTINGS = {
             glassStyle: 'standard',
             timeSec: 60,
@@ -577,7 +572,6 @@
 
             document.getElementById('dynamic-styles').textContent = styleContent;
 
-            // Liquid Glass クラスの適用
             const panels = document.querySelectorAll('.glass-panel');
             panels.forEach(p => {
                 if (currentSettings.glassStyle === 'liquid') {
@@ -588,10 +582,6 @@
             });
         }
 
-        // --- データ取得 ---
-        let weatherData = null;
-        let newsData = [];
-
         async function fetchLocationName() {
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentSettings.lat}&lon=${currentSettings.lon}&zoom=10&accept-language=en`);
@@ -600,13 +590,11 @@
                 document.getElementById('location-name-today').textContent = city.toUpperCase();
                 document.getElementById('location-name-forecast').textContent = city.toUpperCase();
             } catch (e) {
-                console.error("Location fetch error", e);
                 document.getElementById('location-name-today').textContent = 'UNKNOWN';
                 document.getElementById('location-name-forecast').textContent = 'UNKNOWN';
             }
         }
 
-        // 絵文字を削除し、全て英語のテキストで返す
         function getWeatherDisplay(code) {
             if (code === 0) return 'Sunny';
             if (code === 1 || code === 2 || code === 3) return 'Cloudy';
@@ -625,9 +613,7 @@
             try {
                 const res = await fetch(url);
                 weatherData = await res.json();
-            } catch (e) {
-                console.error("Weather fetch error", e);
-            }
+            } catch (e) {}
         }
 
         async function fetchNews() {
@@ -648,42 +634,41 @@
                     }
                 }
                 if (newNewsData.length > 0) newsData = newNewsData;
-            } catch (e) {
-                console.error("News fetch error", e);
-            }
+            } catch (e) {}
         }
 
-        // --- カーテンアニメーション修正版 ---
-        function playCurtain(panelId, callback) {
-            const panel = document.getElementById(panelId);
-            let curtain = panel.querySelector('.curtain-overlay');
+        // --- カーテンアニメーション処理 (改善版) ---
+        function playCurtain(containerId, callback) {
+            const container = document.getElementById(containerId);
+            let curtain = container.querySelector('.curtain-overlay');
             
-            // アニメーションをリセットして左外へ
+            // 左外で待機状態にリセット
             curtain.style.transition = 'none';
             curtain.style.transform = 'translateX(-100%)';
-            void curtain.offsetWidth; // Reflowを強制
+            void curtain.offsetWidth; // Reflowを強制して即時反映
             
-            // スライドイン（画面を覆う）
-            curtain.style.transition = 'transform 0.5s cubic-bezier(0.65, 0, 0.35, 1)';
-            curtain.style.transform = 'translateX(0)';
+            // Phase 1: 左から右へスライドインして画面を覆う
+            curtain.style.transition = 'transform 0.4s ease-in-out';
+            curtain.style.transform = 'translateX(0%)';
             
-            // 完全に覆い終わったら
             setTimeout(() => {
-                // DOMの書き換えを実行
+                // 完全に覆い隠された瞬間にコールバック（DOM書き換え等）を実行
                 if(callback) callback();
                 
-                // スライドアウト（右へ抜ける）
-                curtain.style.transform = 'translateX(100%)';
-                
-                // アニメーション完了後に待機位置へ戻す
+                // 50msだけ画面を覆ったまま保持し、DOMの切り替えチラつきを完全に防ぐ
                 setTimeout(() => {
-                    curtain.style.transition = 'none';
-                    curtain.style.transform = 'translateX(-100%)';
-                }, 500); 
-            }, 500); // 覆う時間とCSSのtransitionを合わせる
+                    // Phase 2: さらに右へスライドアウトして抜けていく
+                    curtain.style.transform = 'translateX(100%)';
+                    
+                    setTimeout(() => {
+                        // アニメーション完了後、見えない状態で元の位置に戻す
+                        curtain.style.transition = 'none';
+                        curtain.style.transform = 'translateX(-100%)';
+                    }, 400); 
+                }, 50);
+            }, 400);
         }
 
-        // --- 画面更新ロジック ---
         let globalSeconds = 0;
         let currentMode = null;
         let currentWeatherMode = null;
@@ -698,9 +683,10 @@
                 const m = String(now.getMinutes()).padStart(2, '0');
                 const s = String(now.getSeconds()).padStart(2, '0');
                 
-                // 曜日は要望の形を維持しつつフォントクラスを当てているのでそのまま
-                const days = ['日', '月', '火', '水', '木', '金', '土'];
-                const dateStr = `${now.getMonth() + 1}/${now.getDate()}(${days[now.getDay()]})`;
+                // 英語の日付フォーマット (例: MON, JAN 1)
+                const daysEn = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+                const monthsEn = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
+                const dateStr = `${daysEn[now.getDay()]}, ${monthsEn[now.getMonth()]} ${now.getDate()}`;
 
                 document.getElementById('side-time-display').textContent = `${h}:${m}`;
                 document.getElementById('side-sec-display').textContent = s;
@@ -744,7 +730,7 @@
                 
                 const sideNeedsCurtain = (isSideClockVisible !== nextSideClockVisible);
 
-                // メインコンテンツ更新（カーテン）
+                // メインコンテンツ更新
                 if (mainNeedsCurtain) {
                     playCurtain('main-ui-panel', () => {
                         applyMainContentDOM(nextMode, nextWeatherMode, nextNewsIndex);
@@ -757,19 +743,20 @@
                     currentMode = nextMode;
                 }
 
-                // サイド時計更新（CSSアニメーション）
+                // サイド時計更新（メインと同じカーテンアニメーションを使用）
                 if (sideNeedsCurtain) {
-                    const sidePanel = document.getElementById('side-ui-panel');
-                    if (nextSideClockVisible) {
-                        sidePanel.classList.add('show');
-                    } else {
-                        sidePanel.classList.remove('show');
-                    }
+                    playCurtain('side-ui-container', () => {
+                        const sidePanel = document.getElementById('side-ui-panel');
+                        sidePanel.style.opacity = nextSideClockVisible ? '1' : '0';
+                    });
                     isSideClockVisible = nextSideClockVisible;
+                } else if (isSideClockVisible && document.getElementById('side-ui-panel').style.opacity === '0') {
+                    // 初回ロード時のセーフティ
+                    document.getElementById('side-ui-panel').style.opacity = '1';
                 }
 
             } catch (e) {
-                console.error("Loop error", e);
+                console.error(e);
             } finally {
                 globalSeconds++;
             }
@@ -847,7 +834,6 @@
             }
         }
 
-        // --- スワイプ処理 ---
         let touchstartX = 0;
         document.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; });
         document.addEventListener('touchend', e => {
@@ -860,7 +846,6 @@
             }
         });
 
-        // 初期化
         loadSettings().then(() => {
             setInterval(updateDisplays, 1000);
             updateDisplays();
