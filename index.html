@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Display v7</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Display v8</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <style>
@@ -29,9 +29,13 @@
         }
 
         body, html {
-            width: 100vw;
-            height: 100vh;
+            width: 100%;
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            /* 縮小やスクロールを完全に防止 */
             overflow: hidden;
+            position: fixed; 
             background-color: var(--bg-color);
             background-size: cover;
             background-position: center;
@@ -45,6 +49,16 @@
 
         .en-font {
             font-family: var(--font-en) !important;
+        }
+
+        /* 画面外にはみ出たものを確実に隠すためのコンテナ */
+        .wrapper {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
         }
 
         .container {
@@ -185,17 +199,17 @@
         .news-title { font-size: 3.5vw; font-weight: 400; line-height: 1.4; }
         .news-qr-area { width: 300px; height: 300px; background: #fff; padding: 20px; border-radius: 16px; display: flex; justify-content: center; align-items: center; }
 
-        /* サイドバー共通 */
+        /* サイドバー共通 (表示領域外への配置方法を修正) */
         .sidebar {
             position: absolute;
             top: 0;
             width: 400px;
+            max-width: 100vw;
             height: 100%;
             background: rgba(20, 20, 20, 0.95);
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
             z-index: 10000;
-            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             padding: 40px 30px;
             display: flex;
             flex-direction: column;
@@ -203,18 +217,18 @@
         }
 
         #settings-sidebar {
-            left: 0;
-            transform: translateX(-100%);
+            left: -400px;
             border-right: 1px solid var(--glass-border-standard);
+            transition: left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        #settings-sidebar.open { transform: translateX(0); }
+        #settings-sidebar.open { left: 0; }
 
         #timer-sidebar {
-            right: 0;
-            transform: translateX(100%);
+            right: -400px;
             border-left: 1px solid var(--glass-border-standard);
+            transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
-        #timer-sidebar.open { transform: translateX(0); }
+        #timer-sidebar.open { right: 0; }
 
         .settings-title { font-size: 24px; margin-bottom: 30px; padding-bottom: 10px; border-bottom: 1px solid var(--glass-border-standard); }
 
@@ -244,7 +258,6 @@
         #swipe-zone-left { left: 0; }
         #swipe-zone-right { right: 0; }
 
-        /* 表示切り替え用ユーティリティ */
         .hidden { display: none !important; }
 
     </style>
@@ -253,163 +266,164 @@
 
     <style id="dynamic-styles"></style>
     
-    <div id="swipe-zone-left" class="swipe-zone"></div>
-    <div id="swipe-zone-right" class="swipe-zone"></div>
+    <div class="wrapper">
+        <div id="swipe-zone-left" class="swipe-zone"></div>
+        <div id="swipe-zone-right" class="swipe-zone"></div>
 
-    <div class="container">
-        
-        <div id="side-ui-container">
-            <div id="side-ui-panel" class="glass-panel">
-                <div class="side-time en-font" id="side-time-display">00:00</div>
-                <div class="side-sec en-font" id="side-sec-display">00</div>
-            </div>
-            <div class="curtain-overlay"></div>
-        </div>
-
-        <div id="timer-ui-container">
-            <div id="timer-ui-panel" class="glass-panel">
-                <div class="timer-label en-font">TIMER</div>
-                <div class="timer-time en-font" id="timer-display">00:00:00</div>
-            </div>
-            <div class="curtain-overlay"></div>
-        </div>
-
-        <div id="main-ui-panel" class="glass-panel">
-            <div id="mode-time" class="mode-content">
-                <div class="huge-clock-time en-font" id="main-time-display">00:00:00</div>
-                <div class="huge-clock-date en-font" id="main-date-display">MON, JAN 1</div>
+        <div class="container">
+            
+            <div id="side-ui-container">
+                <div id="side-ui-panel" class="glass-panel">
+                    <div class="side-time en-font" id="side-time-display">00:00</div>
+                    <div class="side-sec en-font" id="side-sec-display">00</div>
+                </div>
+                <div class="curtain-overlay"></div>
             </div>
 
-            <div id="mode-weather" class="mode-content">
-                <div id="weather-today" class="weather-sub-panel">
-                    <div class="weather-location en-font" id="location-name-today">--</div>
-                    <div class="weather-title en-font">TODAY'S WEATHER</div>
-                    <div class="weather-desc en-font" id="wt-desc">Loading...</div>
-                    <div class="weather-main-temp en-font" id="wt-temp">--°C</div>
-                    <div class="weather-minmax">
-                        <span class="temp-max en-font" id="wt-max">--°C</span> <span class="en-font">/</span> <span class="temp-min en-font" id="wt-min">--°C</span>
+            <div id="timer-ui-container">
+                <div id="timer-ui-panel" class="glass-panel">
+                    <div class="timer-label en-font">TIMER</div>
+                    <div class="timer-time en-font" id="timer-display">00:00:00</div>
+                </div>
+                <div class="curtain-overlay"></div>
+            </div>
+
+            <div id="main-ui-panel" class="glass-panel">
+                <div id="mode-time" class="mode-content">
+                    <div class="huge-clock-time en-font" id="main-time-display">00:00:00</div>
+                    <div class="huge-clock-date en-font" id="main-date-display">MON, JAN 1</div>
+                </div>
+
+                <div id="mode-weather" class="mode-content">
+                    <div id="weather-today" class="weather-sub-panel">
+                        <div class="weather-location en-font" id="location-name-today">--</div>
+                        <div class="weather-title en-font">TODAY'S WEATHER</div>
+                        <div class="weather-desc en-font" id="wt-desc">Loading...</div>
+                        <div class="weather-main-temp en-font" id="wt-temp">--°C</div>
+                        <div class="weather-minmax">
+                            <span class="temp-max en-font" id="wt-max">--°C</span> <span class="en-font">/</span> <span class="temp-min en-font" id="wt-min">--°C</span>
+                        </div>
+                    </div>
+                    
+                    <div id="weather-forecast" class="weather-sub-panel">
+                        <div class="weather-location en-font" id="location-name-forecast">--</div>
+                        <div class="weather-title en-font">5-DAY FORECAST</div>
+                        <div class="forecast-container" id="forecast-box"></div>
                     </div>
                 </div>
-                
-                <div id="weather-forecast" class="weather-sub-panel">
-                    <div class="weather-location en-font" id="location-name-forecast">--</div>
-                    <div class="weather-title en-font">5-DAY FORECAST</div>
-                    <div class="forecast-container" id="forecast-box"></div>
+
+                <div id="mode-news" class="mode-content">
+                    <div class="news-container">
+                        <div class="news-text-area">
+                            <div class="news-header en-font">LATEST NEWS</div>
+                            <div class="news-title" id="news-title-display">ニュースを取得中...</div>
+                        </div>
+                        <div class="news-qr-area">
+                            <canvas id="news-qr"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="curtain-overlay"></div>
+            </div>
+        </div>
+
+        <div id="settings-sidebar" class="sidebar">
+            <div class="settings-title">設定</div>
+            
+            <div class="form-group">
+                <label>UIデザイン</label>
+                <select id="input-glass-style">
+                    <option value="standard">Standard Glass</option>
+                    <option value="liquid">Liquid Glass</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>UIのぼかし具合</label>
+                <input type="range" id="input-blur" min="0" max="50">
+            </div>
+            <div class="form-group">
+                <label>カーテンの色</label>
+                <input type="color" id="input-curtain">
+            </div>
+            <div class="form-group">
+                <label>時計の表示秒数 (デフォルト 60)</label>
+                <input type="number" id="input-time-sec" min="10">
+            </div>
+            <div class="form-group">
+                <label>天気の表示秒数 (デフォルト 60)</label>
+                <input type="number" id="input-weather-sec" min="10">
+            </div>
+            <div class="form-group">
+                <label>ニュースの表示秒数 (デフォルト 60)</label>
+                <input type="number" id="input-news-sec" min="10">
+            </div>
+            <div class="form-group flex-row">
+                <div>
+                    <label>緯度 (Lat)</label>
+                    <input type="number" step="0.000001" id="input-lat">
+                </div>
+                <div>
+                    <label>経度 (Lon)</label>
+                    <input type="number" step="0.000001" id="input-lon">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Yahoo RSS URL</label>
+                <input type="text" id="input-rss">
+            </div>
+            <div class="form-group">
+                <label>日本語フォント</label>
+                <input type="file" id="input-font-ja" accept=".ttf,.otf,.woff,.woff2">
+            </div>
+            <div class="form-group">
+                <label>英語・数字フォント</label>
+                <input type="file" id="input-font-en" accept=".ttf,.otf,.woff,.woff2">
+            </div>
+            <div class="form-group">
+                <label>背景画像</label>
+                <input type="file" id="input-bg" accept="image/*">
+            </div>
+            
+            <button class="btn" onclick="saveSettings()">保存して適用</button>
+        </div>
+
+        <div id="timer-sidebar" class="sidebar">
+            <div class="settings-title">タイマー設定</div>
+            
+            <div class="form-group">
+                <label>モード</label>
+                <select id="timer-mode-select" onchange="switchTimerMode()">
+                    <option value="duration">時間指定 (Countdown)</option>
+                    <option value="target">時刻指定 (Target Time)</option>
+                </select>
+            </div>
+
+            <div id="timer-duration-inputs" class="form-group flex-row">
+                <div>
+                    <label>時間</label>
+                    <input type="number" id="timer-hours" min="0" max="99" value="0">
+                </div>
+                <div>
+                    <label>分</label>
+                    <input type="number" id="timer-minutes" min="0" max="59" value="5">
                 </div>
             </div>
 
-            <div id="mode-news" class="mode-content">
-                <div class="news-container">
-                    <div class="news-text-area">
-                        <div class="news-header en-font">LATEST NEWS</div>
-                        <div class="news-title" id="news-title-display">ニュースを取得中...</div>
-                    </div>
-                    <div class="news-qr-area">
-                        <canvas id="news-qr"></canvas>
-                    </div>
-                </div>
+            <div id="timer-target-inputs" class="form-group hidden">
+                <label>終了時刻</label>
+                <input type="time" id="timer-target-time">
             </div>
-
-            <div class="curtain-overlay"></div>
-        </div>
-    </div>
-
-    <div id="settings-sidebar" class="sidebar">
-        <div class="settings-title">設定</div>
-        
-        <div class="form-group">
-            <label>UIデザイン</label>
-            <select id="input-glass-style">
-                <option value="standard">Standard Glass</option>
-                <option value="liquid">Liquid Glass</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>UIのぼかし具合</label>
-            <input type="range" id="input-blur" min="0" max="50">
-        </div>
-        <div class="form-group">
-            <label>カーテンの色</label>
-            <input type="color" id="input-curtain">
-        </div>
-        <div class="form-group">
-            <label>時計の表示秒数 (デフォルト 60)</label>
-            <input type="number" id="input-time-sec" min="10">
-        </div>
-        <div class="form-group">
-            <label>天気の表示秒数 (デフォルト 60)</label>
-            <input type="number" id="input-weather-sec" min="10">
-        </div>
-        <div class="form-group">
-            <label>ニュースの表示秒数 (デフォルト 60)</label>
-            <input type="number" id="input-news-sec" min="10">
-        </div>
-        <div class="form-group flex-row">
-            <div>
-                <label>緯度 (Lat)</label>
-                <input type="number" step="0.000001" id="input-lat">
+            
+            <button class="btn" id="btn-timer-start" onclick="startTimer()">スタート</button>
+            <div class="flex-row" style="margin-top:10px;">
+                <button class="btn btn-secondary" id="btn-timer-stop" onclick="stopTimer()" disabled>ストップ</button>
+                <button class="btn btn-danger" id="btn-timer-reset" onclick="resetTimer()" disabled>リセット</button>
             </div>
-            <div>
-                <label>経度 (Lon)</label>
-                <input type="number" step="0.000001" id="input-lon">
-            </div>
-        </div>
-        <div class="form-group">
-            <label>Yahoo RSS URL</label>
-            <input type="text" id="input-rss">
-        </div>
-        <div class="form-group">
-            <label>日本語フォント</label>
-            <input type="file" id="input-font-ja" accept=".ttf,.otf,.woff,.woff2">
-        </div>
-        <div class="form-group">
-            <label>英語・数字フォント</label>
-            <input type="file" id="input-font-en" accept=".ttf,.otf,.woff,.woff2">
-        </div>
-        <div class="form-group">
-            <label>背景画像</label>
-            <input type="file" id="input-bg" accept="image/*">
-        </div>
-        
-        <button class="btn" onclick="saveSettings()">保存して適用</button>
-    </div>
-
-    <div id="timer-sidebar" class="sidebar">
-        <div class="settings-title">タイマー設定</div>
-        
-        <div class="form-group">
-            <label>モード</label>
-            <select id="timer-mode-select" onchange="switchTimerMode()">
-                <option value="duration">時間指定 (Countdown)</option>
-                <option value="target">時刻指定 (Target Time)</option>
-            </select>
-        </div>
-
-        <div id="timer-duration-inputs" class="form-group flex-row">
-            <div>
-                <label>時間</label>
-                <input type="number" id="timer-hours" min="0" max="99" value="0">
-            </div>
-            <div>
-                <label>分</label>
-                <input type="number" id="timer-minutes" min="0" max="59" value="5">
-            </div>
-        </div>
-
-        <div id="timer-target-inputs" class="form-group hidden">
-            <label>終了時刻</label>
-            <input type="time" id="timer-target-time">
-        </div>
-        
-        <button class="btn" id="btn-timer-start" onclick="startTimer()">スタート</button>
-        <div class="flex-row" style="margin-top:10px;">
-            <button class="btn btn-secondary" id="btn-timer-stop" onclick="stopTimer()" disabled>ストップ</button>
-            <button class="btn btn-danger" id="btn-timer-reset" onclick="resetTimer()" disabled>リセット</button>
         </div>
     </div>
 
     <script>
-        // --- 設定管理 ---
         const DEFAULT_SETTINGS = {
             glassStyle: 'standard',
             timeSec: 60, weatherSec: 60, newsSec: 60,
@@ -530,7 +544,6 @@
                 const hrs = parseInt(document.getElementById('timer-hours').value) || 0;
                 const mins = parseInt(document.getElementById('timer-minutes').value) || 0;
                 
-                // ストップ状態からの再開か、新規スタートかを判定
                 if (timerRemainingMs > 0 && !timerEndTime) {
                     targetTimeMs = Date.now() + timerRemainingMs;
                 } else {
@@ -547,7 +560,6 @@
                 const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), targetHrs, targetMins, 0);
                 
                 if (targetDate.getTime() <= now.getTime()) {
-                    // もし指定時刻が現在より前なら、翌日の時刻とみなす
                     targetDate.setDate(targetDate.getDate() + 1);
                 }
                 targetTimeMs = targetDate.getTime();
@@ -583,7 +595,6 @@
             document.getElementById('btn-timer-reset').disabled = true;
         }
 
-        // タイマーのUI表示更新処理 (毎秒呼ばれる)
         function processTimerDisplay() {
             let remaining = 0;
             let displayStr = "00:00:00";
@@ -601,7 +612,6 @@
                 const s = String(totalSeconds % 60).padStart(2, '0');
                 displayStr = `${h}:${m}:${s}`;
                 
-                // タイマー表示が必要だが表示されていない場合
                 if (!isTimerVisible) {
                     playCurtain('timer-ui-container', () => {
                         document.getElementById('timer-ui-panel').style.opacity = '1';
@@ -610,12 +620,10 @@
                 }
                 document.getElementById('timer-display').textContent = displayStr;
             } else {
-                // 0になった or リセットされた
                 document.getElementById('timer-display').textContent = "00:00:00";
                 if (isTimerRunning) {
-                    resetTimer(); // 0になったら自動停止
+                    resetTimer(); 
                 }
-                // 表示されていて消す必要がある場合
                 if (isTimerVisible) {
                     playCurtain('timer-ui-container', () => {
                         document.getElementById('timer-ui-panel').style.opacity = '0';
@@ -730,7 +738,6 @@
                 document.getElementById('main-time-display').textContent = `${h}:${m}:${s}`;
                 document.getElementById('main-date-display').textContent = dateStr;
 
-                // タイマーの処理
                 processTimerDisplay();
 
                 if (globalSeconds > 0 && globalSeconds % 60 === 0) fetchNews();
@@ -843,13 +850,11 @@
             }
         }
 
-        // --- スワイプ処理 ---
         let touchstartX = 0;
         let swipeTarget = null;
 
         document.addEventListener('touchstart', e => { 
             touchstartX = e.changedTouches[0].screenX; 
-            // 画面左端(50px以内)か右端(50px以内)か判定
             if (touchstartX < 50) swipeTarget = 'left';
             else if (touchstartX > window.innerWidth - 50) swipeTarget = 'right';
             else swipeTarget = null;
@@ -859,20 +864,16 @@
             let touchendX = e.changedTouches[0].screenX;
             let diff = touchendX - touchstartX;
             
-            // 左から右へスワイプ (設定開く)
             if (swipeTarget === 'left' && diff > 50) {
                 document.getElementById('settings-sidebar').classList.add('open');
             }
-            // 右から左へスワイプ (設定閉じる)
             if (diff < -50 && document.getElementById('settings-sidebar').classList.contains('open')) {
                 document.getElementById('settings-sidebar').classList.remove('open');
             }
 
-            // 右から左へスワイプ (タイマー開く)
             if (swipeTarget === 'right' && diff < -50) {
                 document.getElementById('timer-sidebar').classList.add('open');
             }
-            // 左から右へスワイプ (タイマー閉じる)
             if (diff > 50 && document.getElementById('timer-sidebar').classList.contains('open')) {
                 document.getElementById('timer-sidebar').classList.remove('open');
             }
