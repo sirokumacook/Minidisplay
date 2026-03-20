@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart Display v10</title>
+    <title>Smart Display v11</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
@@ -46,7 +46,6 @@
             transition: background-image 0.5s ease;
         }
 
-        /* 背景の色染め（ティント）用オーバーレイ */
         #bg-tint-overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -74,7 +73,6 @@
             position: relative; justify-content: center; align-items: center;
         }
 
-        /* 共通ガラススタイル */
         .glass-panel {
             background: var(--glass-bg-standard);
             backdrop-filter: blur(var(--blur-amount));
@@ -98,34 +96,42 @@
             z-index: 9999; pointer-events: none; transform: translateX(-100%);
         }
 
-        /* 上部の小さなUI（スマホでもそのままの比率ベース） */
+        /* 左上サイド時計 */
         #side-ui-container { position: absolute; top: 20px; left: 20px; z-index: 10; border-radius: 12px; overflow: hidden; }
         #side-ui-panel { padding: 10px 20px; display: flex; align-items: baseline; opacity: 0; border-radius: inherit; }
         .side-time { font-size: max(16px, 2.5vw); font-weight: 300; letter-spacing: 1px; }
         .side-sec { font-size: max(10px, 1.2vw); color: var(--text-sub); margin-left: 5px; }
 
+        /* 右上タイマー */
         #timer-ui-container { position: absolute; top: 20px; right: 20px; z-index: 10; border-radius: 12px; overflow: hidden; }
         #timer-ui-panel { padding: 10px 20px; display: flex; align-items: baseline; opacity: 0; border-radius: inherit; }
         .timer-label { font-size: max(10px, 1vw); color: var(--text-sub); margin-right: 15px; letter-spacing: 2px; }
         .timer-time { font-size: max(16px, 2.5vw); font-weight: 300; letter-spacing: 1px; }
 
+        /* 上部中央 音楽パネル */
         #music-ui-container { 
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%); 
             z-index: 10; border-radius: 12px; overflow: hidden; 
-            max-width: 60vw;
+            width: 60vw; max-width: 400px;
         }
         #music-ui-panel { 
-            padding: 10px 20px; display: flex; align-items: center; opacity: 0; border-radius: inherit; height: 70px;
+            padding: 15px 20px; display: flex; align-items: center; opacity: 0; border-radius: inherit;
         }
         .music-icon-box {
             width: 45px; height: 45px; border-radius: 8px; background: rgba(0,0,0,0.3);
             display: flex; justify-content: center; align-items: center; margin-right: 15px; overflow: hidden; flex-shrink: 0;
         }
-        .music-info { display: flex; flex-direction: column; justify-content: center; overflow: hidden; }
+        .music-info { display: flex; flex-direction: column; justify-content: center; flex: 1; overflow: hidden; }
         .music-playing-text { font-size: 10px; color: var(--curtain-color); font-weight: bold; letter-spacing: 1px; line-height: 1; margin-bottom: 4px; }
-        .music-title { font-size: max(12px, 1.2vw); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 1px; line-height: 1; }
+        .music-title { font-size: max(12px, 1.2vw); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 1px; line-height: 1.2; margin-bottom: 4px;}
+        
+        /* 音楽プログレスバー */
+        #music-progress-container { width: 100%; display: flex; flex-direction: column; }
+        #music-time-text { font-size: 10px; color: var(--text-sub); margin-bottom: 4px; line-height: 1; }
+        #music-progress-bg { width: 100%; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
+        #music-progress-bar { width: 0%; height: 100%; background: var(--curtain-color); transition: width 0.2s linear; }
 
-        /* メインパネル (レスポンシブベースでvw/vhを最適化) */
+        /* メインパネル */
         #main-ui-panel {
             width: calc(100% - 100px); height: calc(100% - 140px); margin-top: 80px;
             border-radius: 24px; display: flex; justify-content: center; align-items: center; overflow: hidden;
@@ -134,11 +140,9 @@
         .mode-content { display: none; width: 100%; height: 100%; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 40px; }
         .mode-content.active { display: flex; }
 
-        /* 時計モード */
         .huge-clock-time { font-size: 18vmin; font-weight: 200; line-height: 1; letter-spacing: 5px; }
         .huge-clock-date { font-size: 5vmin; color: var(--text-sub); margin-top: 20px; letter-spacing: 2px; text-transform: uppercase; }
 
-        /* 天気モード */
         .weather-sub-panel { display: none; width: 100%; height: 100%; flex-direction: column; justify-content: center; align-items: center; }
         .weather-sub-panel.active { display: flex; }
         .weather-location { font-size: 3vmin; color: var(--text-main); letter-spacing: 2px; margin-bottom: 5px; text-transform: uppercase; }
@@ -155,7 +159,6 @@
         .forecast-desc { font-size: 2.5vmin; margin-bottom: 10px; line-height: 1.4; text-transform: uppercase; }
         .forecast-temp { font-size: 2vmin; }
 
-        /* ニュースモード */
         .news-container { display: flex; width: 100%; height: 100%; align-items: center; justify-content: space-between; }
         .news-text-area { flex: 1; padding-right: 40px; text-align: left; }
         .news-header { font-size: 2.5vmin; color: var(--text-sub); margin-bottom: 2vmin; letter-spacing: 2px; }
@@ -163,19 +166,16 @@
         .news-qr-area { width: 260px; height: 260px; background: #fff; padding: 20px; border-radius: 16px; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
         #news-qr { width: 100%; height: 100%; object-fit: contain; }
 
-        /* スマホ・縦長画面向けのレスポンシブ対応 */
         @media (max-aspect-ratio: 1/1), (max-width: 768px) {
             #main-ui-panel { width: calc(100% - 40px); height: calc(100% - 130px); margin-top: 90px; }
             .mode-content { padding: 20px; }
-            #music-ui-container { max-width: 80vw; }
+            #music-ui-container { width: 80vw; }
             
-            /* ニュースの縦並び化とQRコード縮小 */
             .news-container { flex-direction: column; justify-content: center; text-align: center; }
             .news-text-area { padding-right: 0; padding-bottom: 20px; text-align: center; }
             .news-title { font-size: 6.5vmin; }
             .news-qr-area { width: 160px; height: 160px; padding: 10px; }
 
-            /* 予報の折り返し */
             .forecast-container { flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 15px; }
             .forecast-item { width: calc(33% - 10px); padding: 10px; }
             .forecast-date { font-size: 3vmin; }
@@ -263,6 +263,12 @@
                     <div class="music-info">
                         <div class="music-playing-text en-font">PLAYING</div>
                         <div class="music-title en-font" id="music-title">TITLE</div>
+                        <div id="music-progress-container" class="hidden">
+                            <div id="music-time-text" class="en-font">0:00 / 0:00</div>
+                            <div id="music-progress-bg">
+                                <div id="music-progress-bar"></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="curtain-overlay"></div>
@@ -341,11 +347,11 @@
             <div class="settings-section-title">音楽設定</div>
             <div class="form-group">
                 <label>
-                    <input type="checkbox" id="input-music-always">常に表示する
+                    <input type="checkbox" id="input-music-always">常に表示する (プログレスバー追加)
                 </label>
             </div>
             <div class="form-group">
-                <label>曲名表示秒数 (常時表示オフ時)</label>
+                <label>曲名表示秒数 (常に表示オフ時)</label>
                 <input type="number" id="input-music-sec" min="3" value="10">
             </div>
             <div class="form-group">
@@ -445,7 +451,6 @@
         };
 
         let currentSettings = { ...DEFAULT_SETTINGS };
-        // QRコード生成：固定高画質で生成し、CSS側でサイズを縮小・調整する
         const qr = new QRious({ element: document.getElementById('news-qr'), size: 300 });
 
         async function loadSettings() {
@@ -471,9 +476,12 @@
             fetchWeather();
             fetchNews();
             initMusicSystem();
+            loadTimerState();
         }
 
         async function saveSettings() {
+            const previousAlwaysShow = currentSettings.musicAlwaysShow;
+            
             currentSettings.glassStyle = document.getElementById('input-glass-style').value;
             currentSettings.timeSec = parseInt(document.getElementById('input-time-sec').value) || DEFAULT_SETTINGS.timeSec;
             currentSettings.weatherSec = parseInt(document.getElementById('input-weather-sec').value) || DEFAULT_SETTINGS.weatherSec;
@@ -505,14 +513,23 @@
             fetchNews();
             globalSeconds = 0; 
             
-            // 常に表示モードがオフになった場合など、表示状態をリセットするための処理
-            if (!currentSettings.musicAlwaysShow && isMusicVisible) {
-                playCurtain('music-ui-container', () => { document.getElementById('music-ui-panel').style.opacity = '0'; });
-                isMusicVisible = false;
-            } else if (currentSettings.musicAlwaysShow && currentSettings.isMusicPlaying && !isMusicVisible) {
-                // 再生中かつ常に表示がオンになったら表示
-                document.getElementById('music-ui-panel').style.opacity = '1';
-                isMusicVisible = true;
+            // 常に表示モードが切り替わった時の処理 (カーテン付き)
+            if (previousAlwaysShow !== currentSettings.musicAlwaysShow) {
+                const progContainer = document.getElementById('music-progress-container');
+                if (currentSettings.musicAlwaysShow) {
+                    progContainer.classList.remove('hidden');
+                    if (currentSettings.isMusicPlaying) {
+                        playCurtain('music-ui-container', () => { document.getElementById('music-ui-panel').style.opacity = '1'; });
+                        isMusicVisible = true;
+                    }
+                } else {
+                    progContainer.classList.add('hidden');
+                    if (isMusicVisible) {
+                        playCurtain('music-ui-container', () => { document.getElementById('music-ui-panel').style.opacity = '0'; });
+                        isMusicVisible = false;
+                        if(musicNoticeTimeout) clearTimeout(musicNoticeTimeout);
+                    }
+                }
             }
             
             document.getElementById('settings-sidebar').classList.remove('open');
@@ -551,6 +568,159 @@
             });
         }
 
+        // --- カーテンアニメーション処理 ---
+        function playCurtain(containerId, callback) {
+            const container = document.getElementById(containerId);
+            let curtain = container.querySelector('.curtain-overlay');
+            
+            curtain.style.transition = 'none';
+            curtain.style.transform = 'translateX(-100%)';
+            void curtain.offsetWidth; 
+            
+            curtain.style.transition = 'transform 0.4s ease-in-out';
+            curtain.style.transform = 'translateX(0%)';
+            
+            setTimeout(() => {
+                if(callback) callback();
+                setTimeout(() => {
+                    curtain.style.transform = 'translateX(100%)';
+                    setTimeout(() => {
+                        curtain.style.transition = 'none';
+                        curtain.style.transform = 'translateX(-100%)';
+                    }, 400); 
+                }, 50);
+            }, 400);
+        }
+
+        // --- タイマー管理 (永続化対応) ---
+        let timerEndTime = null;
+        let isTimerRunning = false;
+        let isTimerVisible = false;
+        let timerRemainingMs = 0;
+
+        async function loadTimerState() {
+            const savedTimer = await localforage.getItem('smartDisplayTimer');
+            if (savedTimer) {
+                timerEndTime = savedTimer.timerEndTime;
+                isTimerRunning = savedTimer.isTimerRunning;
+                timerRemainingMs = savedTimer.timerRemainingMs;
+                
+                if (isTimerRunning && timerEndTime) {
+                    if (timerEndTime <= Date.now()) {
+                        resetTimer(); // 放置中に終わった
+                    } else {
+                        document.getElementById('btn-timer-start').disabled = true;
+                        document.getElementById('btn-timer-stop').disabled = false;
+                        document.getElementById('btn-timer-reset').disabled = false;
+                    }
+                } else if (!isTimerRunning && timerRemainingMs > 0) {
+                    document.getElementById('btn-timer-start').disabled = false;
+                    document.getElementById('btn-timer-stop').disabled = true;
+                    document.getElementById('btn-timer-reset').disabled = false;
+                }
+            }
+        }
+
+        async function saveTimerState() {
+            await localforage.setItem('smartDisplayTimer', { timerEndTime, isTimerRunning, timerRemainingMs });
+        }
+
+        function switchTimerMode() {
+            const mode = document.getElementById('timer-mode-select').value;
+            if (mode === 'duration') {
+                document.getElementById('timer-duration-inputs').classList.remove('hidden');
+                document.getElementById('timer-target-inputs').classList.add('hidden');
+            } else {
+                document.getElementById('timer-duration-inputs').classList.add('hidden');
+                document.getElementById('timer-target-inputs').classList.remove('hidden');
+            }
+        }
+
+        function startTimer() {
+            if (isTimerRunning) return;
+            const mode = document.getElementById('timer-mode-select').value;
+            let targetTimeMs = 0;
+
+            if (mode === 'duration') {
+                const hrs = parseInt(document.getElementById('timer-hours').value) || 0;
+                const mins = parseInt(document.getElementById('timer-minutes').value) || 0;
+                if (timerRemainingMs > 0 && !timerEndTime) {
+                    targetTimeMs = Date.now() + timerRemainingMs;
+                } else {
+                    const totalMs = (hrs * 60 * 60 + mins * 60) * 1000;
+                    if (totalMs <= 0) return;
+                    targetTimeMs = Date.now() + totalMs;
+                }
+            } else {
+                const targetStr = document.getElementById('timer-target-time').value;
+                if (!targetStr) return;
+                const now = new Date();
+                const [targetHrs, targetMins] = targetStr.split(':').map(Number);
+                const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), targetHrs, targetMins, 0);
+                if (targetDate.getTime() <= now.getTime()) targetDate.setDate(targetDate.getDate() + 1);
+                targetTimeMs = targetDate.getTime();
+            }
+
+            timerEndTime = targetTimeMs;
+            isTimerRunning = true;
+            document.getElementById('btn-timer-start').disabled = true;
+            document.getElementById('btn-timer-stop').disabled = false;
+            document.getElementById('btn-timer-reset').disabled = false;
+            document.getElementById('timer-sidebar').classList.remove('open');
+            saveTimerState();
+        }
+
+        function stopTimer() {
+            if (!isTimerRunning) return;
+            isTimerRunning = false;
+            if (timerEndTime) {
+                timerRemainingMs = timerEndTime - Date.now();
+                if(timerRemainingMs < 0) timerRemainingMs = 0;
+            }
+            timerEndTime = null;
+            document.getElementById('btn-timer-start').disabled = false;
+            document.getElementById('btn-timer-stop').disabled = true;
+            document.getElementById('timer-sidebar').classList.remove('open');
+            saveTimerState();
+        }
+
+        function resetTimer() {
+            isTimerRunning = false; timerEndTime = null; timerRemainingMs = 0;
+            document.getElementById('btn-timer-start').disabled = false;
+            document.getElementById('btn-timer-stop').disabled = true;
+            document.getElementById('btn-timer-reset').disabled = true;
+            document.getElementById('timer-sidebar').classList.remove('open');
+            saveTimerState();
+        }
+
+        function processTimerDisplay() {
+            let remaining = 0; let displayStr = "00:00:00";
+            if (isTimerRunning && timerEndTime) remaining = timerEndTime - Date.now();
+            else if (!isTimerRunning && timerRemainingMs > 0) remaining = timerRemainingMs;
+
+            if (remaining > 0) {
+                const totalSeconds = Math.ceil(remaining / 1000);
+                const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+                const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+                const s = String(totalSeconds % 60).padStart(2, '0');
+                displayStr = `${h}:${m}:${s}`;
+                
+                if (!isTimerVisible) {
+                    playCurtain('timer-ui-container', () => { document.getElementById('timer-ui-panel').style.opacity = '1'; });
+                    isTimerVisible = true;
+                }
+                document.getElementById('timer-display').textContent = displayStr;
+            } else {
+                document.getElementById('timer-display').textContent = "00:00:00";
+                if (isTimerRunning) resetTimer(); 
+                if (isTimerVisible) {
+                    playCurtain('timer-ui-container', () => { document.getElementById('timer-ui-panel').style.opacity = '0'; });
+                    isTimerVisible = false;
+                }
+            }
+        }
+
+
         // --- 音楽再生システム ---
         let playlist = [];
         let shuffleQueue = [];
@@ -564,15 +734,21 @@
         async function initMusicSystem() {
             const savedMusic = await localforage.getItem('smartDisplayMusic');
             if (savedMusic) playlist = savedMusic;
-            updateMusicStatusUI();
-
-            if(currentSettings.isMusicPlaying && playlist.length > 0) {
-                try { playNextTrack(); } 
-                catch(e) {
-                    currentSettings.isMusicPlaying = false;
-                    localforage.setItem('smartDisplaySettings', currentSettings);
-                }
+            
+            // ロード時はブラウザポリシーにより自動再生不可のため必ず停止状態にする
+            currentSettings.isMusicPlaying = false;
+            await localforage.setItem('smartDisplaySettings', currentSettings);
+            
+            // 初期状態はプログレスバー表示設定に合わせる
+            if (currentSettings.musicAlwaysShow) {
+                document.getElementById('music-progress-container').classList.remove('hidden');
+            } else {
+                document.getElementById('music-progress-container').classList.add('hidden');
             }
+            
+            updateMusicStatusUI();
+            document.getElementById('music-ui-panel').style.opacity = '0';
+            isMusicVisible = false;
         }
 
         function updateMusicStatusUI() {
@@ -644,11 +820,15 @@
                 currentSettings.isMusicPlaying = true;
                 if(audioPlayer.src && audioPlayer.currentTime > 0) {
                     audioPlayer.play().catch(e => console.log(e));
-                    // 一時停止からの再開の場合、UIを出す
+                    // 一時停止からの再開時
                     if (!isMusicVisible && playlist.length > 0) {
-                        // 現在の曲の情報を引っ張るのが少し手間なので、次の曲へ送って綺麗に表示させる
-                        playNextTrack();
-                        return;
+                        if (currentSettings.musicAlwaysShow) {
+                            playCurtain('music-ui-container', () => { document.getElementById('music-ui-panel').style.opacity = '1'; });
+                            isMusicVisible = true;
+                        } else {
+                            // 常に表示でないなら、再開時に曲情報をカーテンで出す
+                            showMusicUI(playlist[shuffleQueue.length > 0 ? shuffleQueue[shuffleQueue.length - 1] : 0], true);
+                        }
                     }
                 } else {
                     playNextTrack();
@@ -684,7 +864,7 @@
             showMusicUI(track);
         }
 
-        function showMusicUI(track) {
+        function showMusicUI(track, isResume = false) {
             const updateContent = () => {
                 document.getElementById('music-title').textContent = track.title;
                 if(track.cover) {
@@ -697,7 +877,7 @@
 
             if (musicNoticeTimeout) clearTimeout(musicNoticeTimeout);
 
-            // すでに表示されていても、曲が変わればカーテンを走らせて更新する
+            // 表示されていても曲が変わればカーテンを走らせる
             playCurtain('music-ui-container', updateContent);
             isMusicVisible = true;
 
@@ -714,102 +894,23 @@
             }
         }
 
-
-        // --- タイマー管理 ---
-        let timerEndTime = null;
-        let isTimerRunning = false;
-        let isTimerVisible = false;
-        let timerRemainingMs = 0;
-
-        function switchTimerMode() {
-            const mode = document.getElementById('timer-mode-select').value;
-            if (mode === 'duration') {
-                document.getElementById('timer-duration-inputs').classList.remove('hidden');
-                document.getElementById('timer-target-inputs').classList.add('hidden');
-            } else {
-                document.getElementById('timer-duration-inputs').classList.add('hidden');
-                document.getElementById('timer-target-inputs').classList.remove('hidden');
-            }
-        }
-
-        function startTimer() {
-            if (isTimerRunning) return;
-            const mode = document.getElementById('timer-mode-select').value;
-            let targetTimeMs = 0;
-
-            if (mode === 'duration') {
-                const hrs = parseInt(document.getElementById('timer-hours').value) || 0;
-                const mins = parseInt(document.getElementById('timer-minutes').value) || 0;
-                if (timerRemainingMs > 0 && !timerEndTime) {
-                    targetTimeMs = Date.now() + timerRemainingMs;
-                } else {
-                    const totalMs = (hrs * 60 * 60 + mins * 60) * 1000;
-                    if (totalMs <= 0) return;
-                    targetTimeMs = Date.now() + totalMs;
-                }
-            } else {
-                const targetStr = document.getElementById('timer-target-time').value;
-                if (!targetStr) return;
-                const now = new Date();
-                const [targetHrs, targetMins] = targetStr.split(':').map(Number);
-                const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), targetHrs, targetMins, 0);
-                if (targetDate.getTime() <= now.getTime()) targetDate.setDate(targetDate.getDate() + 1);
-                targetTimeMs = targetDate.getTime();
-            }
-
-            timerEndTime = targetTimeMs;
-            isTimerRunning = true;
-            document.getElementById('btn-timer-start').disabled = true;
-            document.getElementById('btn-timer-stop').disabled = false;
-            document.getElementById('btn-timer-reset').disabled = false;
-            document.getElementById('timer-sidebar').classList.remove('open');
-        }
-
-        function stopTimer() {
-            if (!isTimerRunning) return;
-            isTimerRunning = false;
-            if (timerEndTime) {
-                timerRemainingMs = timerEndTime - Date.now();
-                if(timerRemainingMs < 0) timerRemainingMs = 0;
-            }
-            timerEndTime = null;
-            document.getElementById('btn-timer-start').disabled = false;
-            document.getElementById('btn-timer-stop').disabled = true;
-        }
-
-        function resetTimer() {
-            isTimerRunning = false; timerEndTime = null; timerRemainingMs = 0;
-            document.getElementById('btn-timer-start').disabled = false;
-            document.getElementById('btn-timer-stop').disabled = true;
-            document.getElementById('btn-timer-reset').disabled = true;
-        }
-
-        function processTimerDisplay() {
-            let remaining = 0; let displayStr = "00:00:00";
-            if (isTimerRunning && timerEndTime) remaining = timerEndTime - Date.now();
-            else if (!isTimerRunning && timerRemainingMs > 0) remaining = timerRemainingMs;
-
-            if (remaining > 0) {
-                const totalSeconds = Math.ceil(remaining / 1000);
-                const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
-                const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
-                const s = String(totalSeconds % 60).padStart(2, '0');
-                displayStr = `${h}:${m}:${s}`;
+        // 音楽プログレスバーの更新用高速ループ
+        setInterval(() => {
+            if (currentSettings.isMusicPlaying && currentSettings.musicAlwaysShow && isMusicVisible) {
+                const duration = audioPlayer.duration || 0;
+                const current = audioPlayer.currentTime || 0;
+                const prog = duration > 0 ? (current / duration) * 100 : 0;
                 
-                if (!isTimerVisible) {
-                    playCurtain('timer-ui-container', () => { document.getElementById('timer-ui-panel').style.opacity = '1'; });
-                    isTimerVisible = true;
-                }
-                document.getElementById('timer-display').textContent = displayStr;
-            } else {
-                document.getElementById('timer-display').textContent = "00:00:00";
-                if (isTimerRunning) resetTimer(); 
-                if (isTimerVisible) {
-                    playCurtain('timer-ui-container', () => { document.getElementById('timer-ui-panel').style.opacity = '0'; });
-                    isTimerVisible = false;
-                }
+                document.getElementById('music-progress-bar').style.width = `${prog}%`;
+                
+                const curM = Math.floor(current / 60);
+                const curS = String(Math.floor(current % 60)).padStart(2, '0');
+                const durM = Math.floor(duration / 60) || 0;
+                const durS = String(Math.floor(duration % 60) || 0).padStart(2, '0');
+                document.getElementById('music-time-text').textContent = `${curM}:${curS} / ${durM}:${durS}`;
             }
-        }
+        }, 250);
+
 
         // --- データ取得 ---
         let weatherData = null;
@@ -864,29 +965,6 @@
             } catch (e) {}
         }
 
-        // --- カーテンアニメーション処理 ---
-        function playCurtain(containerId, callback) {
-            const container = document.getElementById(containerId);
-            let curtain = container.querySelector('.curtain-overlay');
-            
-            curtain.style.transition = 'none';
-            curtain.style.transform = 'translateX(-100%)';
-            void curtain.offsetWidth; 
-            
-            curtain.style.transition = 'transform 0.4s ease-in-out';
-            curtain.style.transform = 'translateX(0%)';
-            
-            setTimeout(() => {
-                if(callback) callback();
-                setTimeout(() => {
-                    curtain.style.transform = 'translateX(100%)';
-                    setTimeout(() => {
-                        curtain.style.transition = 'none';
-                        curtain.style.transform = 'translateX(-100%)';
-                    }, 400); 
-                }, 50);
-            }, 400);
-        }
 
         let globalSeconds = 0;
         let currentMode = null;
