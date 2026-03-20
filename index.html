@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Display</title>
+    <title>Smart Display v2</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <style>
@@ -13,6 +13,10 @@
             --text-sub: rgba(255, 255, 255, 0.6);
             --glass-bg: rgba(30, 30, 30, 0.4);
             --glass-border: rgba(255, 255, 255, 0.1);
+            
+            /* フォントファミリーの変数 */
+            --font-ja: 'DefaultFontJa', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+            --font-en: 'DefaultFontEn', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
         }
 
         * {
@@ -30,14 +34,22 @@
             background-size: cover;
             background-position: center;
             color: var(--text-main);
-            font-family: 'DefaultFont', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            /* デフォルトは日本語フォント */
+            font-family: var(--font-ja);
             transition: background-image 0.5s ease;
         }
 
-        /* カスタムフォント適用用 */
-        @font-face {
-            font-family: 'DefaultFont';
-            src: local('sans-serif');
+        /* カスタムフォント適用用のプレースホルダー */
+        @font-face { font-family: 'DefaultFontJa'; src: local('sans-serif'); }
+        @font-face { font-family: 'DefaultFontEn'; src: local('Arial'); }
+
+        /* 英語・数字フォントを適用するクラス */
+        .en-font, 
+        .side-time, .side-sec, 
+        .huge-clock-time, 
+        .weather-main-temp, .forecast-date, .forecast-temp,
+        .news-header {
+            font-family: var(--font-en);
         }
 
         .container {
@@ -47,21 +59,23 @@
             position: relative;
         }
 
-        /* 画面左端の時計（天気・ニュース時） */
+        /* --- 修正：天気・ニュース時の左上時計（横長） --- */
         #side-clock {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 15vw;
-            height: 100%;
+            top: 20px;
+            left: 20px;
+            width: auto;
+            height: auto;
             background: var(--glass-bg);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
-            border-right: 1px solid var(--glass-border);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
             display: flex;
-            flex-direction: column;
+            flex-direction: row; /* 横並び */
             justify-content: center;
-            align-items: center;
+            align-items: baseline; /* ベースラインで揃える */
+            padding: 10px 20px;
             opacity: 0;
             transition: opacity 0.5s ease;
             z-index: 10;
@@ -72,20 +86,20 @@
         }
 
         .side-time {
-            font-size: 3vw;
+            font-size: 2.5vw;
             font-weight: 300;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
         }
 
         .side-sec {
-            font-size: 1.5vw;
+            font-size: 1.2vw;
             color: var(--text-sub);
+            margin-left: 5px; /* 時間との間隔 */
         }
 
+        /* 修正：日付は消す */
         .side-date {
-            font-size: 1vw;
-            color: var(--text-sub);
-            margin-top: 10px;
+            display: none;
         }
 
         /* メインコンテンツエリア */
@@ -101,8 +115,10 @@
 
         .mode-panel {
             position: absolute;
-            width: 80%;
-            height: 80%;
+            /* 修正：左上時計と被らないように余白を調整 */
+            width: calc(100% - 100px);
+            height: calc(100% - 120px);
+            margin-top: 60px; /* 上部に余白 */
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -125,6 +141,12 @@
         }
 
         /* 時計モード */
+        #mode-time {
+            /* 時計モード時は中央配置で大きく */
+            width: 80%;
+            height: 80%;
+            margin-top: 0;
+        }
         .huge-clock-time {
             font-size: 12vw;
             font-weight: 200;
@@ -204,9 +226,10 @@
             font-size: 1.5vw;
             color: var(--text-sub);
             margin-bottom: 20px;
+            letter-spacing: 1px;
         }
         .news-title {
-            font-size: 4vw;
+            font-size: 3.5vw;
             font-weight: 400;
             line-height: 1.4;
         }
@@ -290,6 +313,10 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 20px;
+            transition: background 0.2s;
+        }
+        .save-btn:hover {
+            background: rgba(255,255,255,0.8);
         }
 
         /* スワイプ検知用エリア */
@@ -305,7 +332,7 @@
 </head>
 <body>
 
-    <style id="dynamic-font"></style>
+    <style id="dynamic-styles"></style>
 
     <div id="swipe-zone"></div>
 
@@ -339,7 +366,7 @@
             <div id="mode-news" class="mode-panel">
                 <div class="news-container">
                     <div class="news-text-area">
-                        <div class="news-header">最新のニュース</div>
+                        <div class="news-header">LATEST NEWS</div>
                         <div class="news-title" id="news-title-display">ニュースを取得中...</div>
                     </div>
                     <div class="news-qr-area">
@@ -365,10 +392,16 @@
             <label>Yahooニュース RSS URL</label>
             <input type="text" id="input-rss" placeholder="RSS URL">
         </div>
+        
         <div class="form-group">
-            <label>カスタムフォント (TTF/OTF/WOFF)</label>
-            <input type="file" id="input-font" accept=".ttf,.otf,.woff,.woff2">
+            <label>日本語フォント (通常テキスト)</label>
+            <input type="file" id="input-font-ja" accept=".ttf,.otf,.woff,.woff2">
         </div>
+        <div class="form-group">
+            <label>英語・数字フォント (時計・温度など)</label>
+            <input type="file" id="input-font-en" accept=".ttf,.otf,.woff,.woff2">
+        </div>
+
         <div class="form-group">
             <label>背景画像</label>
             <input type="file" id="input-bg" accept="image/*">
@@ -383,7 +416,8 @@
             lat: 35.6895, // 東京
             lon: 139.6917,
             rssUrl: 'https://news.yahoo.co.jp/rss/topics/top-picks.xml',
-            fontData: null,
+            fontDataJa: null, // 日本語フォントデータ
+            fontDataEn: null, // 英語・数字フォントデータ
             bgData: null
         };
 
@@ -410,9 +444,16 @@
             currentSettings.lon = parseFloat(document.getElementById('input-lon').value) || DEFAULT_SETTINGS.lon;
             currentSettings.rssUrl = document.getElementById('input-rss').value || DEFAULT_SETTINGS.rssUrl;
 
-            const fontFile = document.getElementById('input-font').files[0];
-            if (fontFile) {
-                currentSettings.fontData = await readFileAsDataURL(fontFile);
+            // 日本語フォント処理
+            const fontFileJa = document.getElementById('input-font-ja').files[0];
+            if (fontFileJa) {
+                currentSettings.fontDataJa = await readFileAsDataURL(fontFileJa);
+            }
+
+            // 英語フォント処理
+            const fontFileEn = document.getElementById('input-font-en').files[0];
+            if (fontFileEn) {
+                currentSettings.fontDataEn = await readFileAsDataURL(fontFileEn);
             }
 
             const bgFile = document.getElementById('input-bg').files[0];
@@ -436,20 +477,44 @@
             });
         }
 
+        // 修正：フォント適用ロジックを分離
         function applyCustomStyles() {
+            let styleContent = '';
+
+            // 背景画像
             if (currentSettings.bgData) {
                 document.body.style.backgroundImage = `url(${currentSettings.bgData})`;
             }
-            if (currentSettings.fontData) {
-                const style = document.getElementById('dynamic-font');
-                style.textContent = `
+
+            // 日本語フォント
+            if (currentSettings.fontDataJa) {
+                styleContent += `
                     @font-face {
-                        font-family: 'CustomUserFont';
-                        src: url(${currentSettings.fontData});
+                        font-family: 'CustomUserFontJa';
+                        src: url(${currentSettings.fontDataJa});
                     }
-                    body { font-family: 'CustomUserFont', sans-serif; }
                 `;
+                document.documentElement.style.setProperty('--font-ja', "'CustomUserFontJa', sans-serif");
+            } else {
+                // デフォルトに戻す
+                document.documentElement.style.setProperty('--font-ja', DEFAULT_SETTINGS.fontJa || "sans-serif");
             }
+
+            // 英語・数字フォント
+            if (currentSettings.fontDataEn) {
+                styleContent += `
+                    @font-face {
+                        font-family: 'CustomUserFontEn';
+                        src: url(${currentSettings.fontDataEn});
+                    }
+                `;
+                document.documentElement.style.setProperty('--font-en', "'CustomUserFontEn', sans-serif");
+            } else {
+                // デフォルトに戻す
+                document.documentElement.style.setProperty('--font-en', DEFAULT_SETTINGS.fontEn || "sans-serif");
+            }
+
+            document.getElementById('dynamic-styles').textContent = styleContent;
         }
 
         // --- スワイプ処理 ---
@@ -476,7 +541,7 @@
 
         function getWeatherText(code) {
             if (code === 0) return '快晴';
-            if (code === 1 || code === 2 || code === 3) return '晴れ時々曇り / 曇り';
+            if (code === 1 || code === 2 || code === 3) return '晴れ / 曇り';
             if (code >= 45 && code <= 48) return '霧';
             if (code >= 51 && code <= 55) return '霧雨';
             if (code >= 61 && code <= 65) return '雨';
@@ -492,6 +557,8 @@
             try {
                 const res = await fetch(url);
                 weatherData = await res.json();
+                // 予報ボックスをクリアして再生成を促す
+                document.getElementById('forecast-box').innerHTML = '';
             } catch (e) {
                 console.error("Weather fetch error", e);
             }
@@ -607,6 +674,7 @@
                     if (box.children.length === 0) {
                         for (let i = 1; i <= 5; i++) {
                             const dateObj = new Date(daily.time[i]);
+                            // 修正：日付表示にも英語フォントクラスを適用
                             const dStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
                             const wStr = getWeatherText(daily.weathercode[i]);
                             const maxT = daily.temperature_2m_max[i];
@@ -614,9 +682,9 @@
 
                             const html = `
                                 <div class="forecast-item">
-                                    <div class="forecast-date">${dStr}</div>
+                                    <div class="forecast-date en-font">${dStr}</div>
                                     <div class="forecast-desc">${wStr}</div>
-                                    <div class="forecast-temp">${maxT}° / ${minT}°</div>
+                                    <div class="forecast-temp en-font">${maxT}° / ${minT}°</div>
                                 </div>
                             `;
                             box.insertAdjacentHTML('beforeend', html);
@@ -631,7 +699,6 @@
             if (newsData.length === 0) return;
 
             // 20秒ごとに切り替え (0-19, 20-39, 40-59)
-            // 5件取得しているが、60秒間の枠なので表示されるのは最初の3件
             const index = Math.floor(sec / 20) % newsData.length;
             
             if (lastNewsIndex !== index) {
