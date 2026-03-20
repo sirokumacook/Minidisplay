@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Display</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --text-main: rgba(255, 255, 255, 0.95);
+            --text-sub: rgba(255, 255, 255, 0.6);
+            --glass-bg: rgba(30, 30, 30, 0.4);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+        }
+
+        body, html {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            background-size: cover;
+            background-position: center;
+            color: var(--text-main);
+            font-family: 'DefaultFont', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            transition: background-image 0.5s ease;
+        }
+
+        /* カスタムフォント適用用 */
+        @font-face {
+            font-family: 'DefaultFont';
+            src: local('sans-serif');
+        }
+
+        .container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            position: relative;
+        }
+
+        /* 画面左端の時計（天気・ニュース時） */
+        #side-clock {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 15vw;
+            height: 100%;
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border-right: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+            z-index: 10;
+        }
+
+        #side-clock.visible {
+            opacity: 1;
+        }
+
+        .side-time {
+            font-size: 3vw;
+            font-weight: 300;
+            letter-spacing: 2px;
+        }
+
+        .side-sec {
+            font-size: 1.5vw;
+            color: var(--text-sub);
+        }
+
+        .side-date {
+            font-size: 1vw;
+            color: var(--text-sub);
+            margin-top: 10px;
+        }
+
+        /* メインコンテンツエリア */
+        #main-content {
+            flex-grow: 1;
+            position: relative;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .mode-panel {
+            position: absolute;
+            width: 80%;
+            height: 80%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s ease;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border);
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .mode-panel.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* 時計モード */
+        .huge-clock-time {
+            font-size: 12vw;
+            font-weight: 200;
+            line-height: 1;
+            letter-spacing: 5px;
+        }
+        .huge-clock-date {
+            font-size: 3vw;
+            color: var(--text-sub);
+            margin-top: 20px;
+            letter-spacing: 2px;
+        }
+
+        /* 天気モード */
+        .weather-sub-panel {
+            display: none;
+            width: 100%;
+            height: 100%;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .weather-sub-panel.active {
+            display: flex;
+        }
+        .weather-title {
+            font-size: 2vw;
+            color: var(--text-sub);
+            margin-bottom: 20px;
+        }
+        .weather-main-temp {
+            font-size: 8vw;
+            font-weight: 300;
+            line-height: 1;
+        }
+        .weather-desc {
+            font-size: 3vw;
+            margin: 20px 0;
+        }
+        .weather-minmax {
+            font-size: 2vw;
+            color: var(--text-sub);
+        }
+        .forecast-container {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-top: 30px;
+        }
+        .forecast-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(0,0,0,0.2);
+            padding: 20px;
+            border-radius: 16px;
+            width: 18%;
+        }
+        .forecast-date { font-size: 1.5vw; margin-bottom: 10px; }
+        .forecast-desc { font-size: 1.5vw; margin-bottom: 10px; }
+        .forecast-temp { font-size: 1.2vw; color: var(--text-sub); }
+
+        /* ニュースモード */
+        .news-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .news-text-area {
+            flex: 1;
+            padding-right: 40px;
+        }
+        .news-header {
+            font-size: 1.5vw;
+            color: var(--text-sub);
+            margin-bottom: 20px;
+        }
+        .news-title {
+            font-size: 4vw;
+            font-weight: 400;
+            line-height: 1.4;
+        }
+        .news-qr-area {
+            width: 300px;
+            height: 300px;
+            background: #fff;
+            padding: 20px;
+            border-radius: 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* 設定サイドバー */
+        #settings-sidebar {
+            position: absolute;
+            top: 0;
+            left: -400px;
+            width: 400px;
+            height: 100%;
+            background: rgba(20, 20, 20, 0.95);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
+            border-right: 1px solid var(--glass-border);
+            z-index: 100;
+            transition: left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            padding: 40px 30px;
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+
+        #settings-sidebar.open {
+            left: 0;
+        }
+
+        .settings-title {
+            font-size: 24px;
+            margin-bottom: 30px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            color: var(--text-sub);
+            margin-bottom: 8px;
+        }
+
+        .form-group input[type="text"],
+        .form-group input[type="number"] {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0,0,0,0.5);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .form-group input[type="file"] {
+            width: 100%;
+            color: var(--text-sub);
+            font-size: 14px;
+        }
+
+        .save-btn {
+            background: #fff;
+            color: #000;
+            border: none;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        /* スワイプ検知用エリア */
+        #swipe-zone {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 30px;
+            height: 100%;
+            z-index: 50;
+        }
+    </style>
+</head>
+<body>
+
+    <style id="dynamic-font"></style>
+
+    <div id="swipe-zone"></div>
+
+    <div class="container">
+        <div id="side-clock">
+            <div class="side-time" id="side-time-display">00:00</div>
+            <div class="side-sec" id="side-sec-display">00</div>
+            <div class="side-date" id="side-date-display">1月1日(月)</div>
+        </div>
+
+        <div id="main-content">
+            <div id="mode-time" class="mode-panel active">
+                <div class="huge-clock-time" id="main-time-display">00:00:00</div>
+                <div class="huge-clock-date" id="main-date-display">1月1日(月)</div>
+            </div>
+
+            <div id="mode-weather" class="mode-panel">
+                <div id="weather-today" class="weather-sub-panel active">
+                    <div class="weather-title">今日の天気</div>
+                    <div class="weather-desc" id="wt-desc">取得中...</div>
+                    <div class="weather-main-temp" id="wt-temp">--°C</div>
+                    <div class="weather-minmax" id="wt-minmax">最高: --°C / 最低: --°C</div>
+                </div>
+                <div id="weather-forecast" class="weather-sub-panel">
+                    <div class="weather-title">明日からの天気</div>
+                    <div class="forecast-container" id="forecast-box">
+                        </div>
+                </div>
+            </div>
+
+            <div id="mode-news" class="mode-panel">
+                <div class="news-container">
+                    <div class="news-text-area">
+                        <div class="news-header">最新のニュース</div>
+                        <div class="news-title" id="news-title-display">ニュースを取得中...</div>
+                    </div>
+                    <div class="news-qr-area">
+                        <canvas id="news-qr"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="settings-sidebar">
+        <div class="settings-title">設定</div>
+        
+        <div class="form-group">
+            <label>緯度 (Latitude)</label>
+            <input type="number" step="0.000001" id="input-lat" placeholder="例: 35.6895">
+        </div>
+        <div class="form-group">
+            <label>経度 (Longitude)</label>
+            <input type="number" step="0.000001" id="input-lon" placeholder="例: 139.6917">
+        </div>
+        <div class="form-group">
+            <label>Yahooニュース RSS URL</label>
+            <input type="text" id="input-rss" placeholder="RSS URL">
+        </div>
+        <div class="form-group">
+            <label>カスタムフォント (TTF/OTF/WOFF)</label>
+            <input type="file" id="input-font" accept=".ttf,.otf,.woff,.woff2">
+        </div>
+        <div class="form-group">
+            <label>背景画像</label>
+            <input type="file" id="input-bg" accept="image/*">
+        </div>
+        
+        <button class="save-btn" onclick="saveSettings()">保存して適用</button>
+    </div>
+
+    <script>
+        // --- 設定管理 ---
+        const DEFAULT_SETTINGS = {
+            lat: 35.6895, // 東京
+            lon: 139.6917,
+            rssUrl: 'https://news.yahoo.co.jp/rss/topics/top-picks.xml',
+            fontData: null,
+            bgData: null
+        };
+
+        let currentSettings = { ...DEFAULT_SETTINGS };
+        const qr = new QRious({ element: document.getElementById('news-qr'), size: 260 });
+
+        async function loadSettings() {
+            const saved = await localforage.getItem('smartDisplaySettings');
+            if (saved) {
+                currentSettings = { ...DEFAULT_SETTINGS, ...saved };
+            }
+            
+            document.getElementById('input-lat').value = currentSettings.lat;
+            document.getElementById('input-lon').value = currentSettings.lon;
+            document.getElementById('input-rss').value = currentSettings.rssUrl;
+
+            applyCustomStyles();
+            fetchWeather();
+            fetchNews();
+        }
+
+        async function saveSettings() {
+            currentSettings.lat = parseFloat(document.getElementById('input-lat').value) || DEFAULT_SETTINGS.lat;
+            currentSettings.lon = parseFloat(document.getElementById('input-lon').value) || DEFAULT_SETTINGS.lon;
+            currentSettings.rssUrl = document.getElementById('input-rss').value || DEFAULT_SETTINGS.rssUrl;
+
+            const fontFile = document.getElementById('input-font').files[0];
+            if (fontFile) {
+                currentSettings.fontData = await readFileAsDataURL(fontFile);
+            }
+
+            const bgFile = document.getElementById('input-bg').files[0];
+            if (bgFile) {
+                currentSettings.bgData = await readFileAsDataURL(bgFile);
+            }
+
+            await localforage.setItem('smartDisplaySettings', currentSettings);
+            applyCustomStyles();
+            fetchWeather();
+            fetchNews();
+            
+            document.getElementById('settings-sidebar').classList.remove('open');
+        }
+
+        function readFileAsDataURL(file) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function applyCustomStyles() {
+            if (currentSettings.bgData) {
+                document.body.style.backgroundImage = `url(${currentSettings.bgData})`;
+            }
+            if (currentSettings.fontData) {
+                const style = document.getElementById('dynamic-font');
+                style.textContent = `
+                    @font-face {
+                        font-family: 'CustomUserFont';
+                        src: url(${currentSettings.fontData});
+                    }
+                    body { font-family: 'CustomUserFont', sans-serif; }
+                `;
+            }
+        }
+
+        // --- スワイプ処理 ---
+        let touchstartX = 0;
+        document.addEventListener('touchstart', e => {
+            touchstartX = e.changedTouches[0].screenX;
+        });
+
+        document.addEventListener('touchend', e => {
+            let touchendX = e.changedTouches[0].screenX;
+            // 左端から右へスワイプ
+            if (touchendX - touchstartX > 50 && touchstartX < 50) {
+                document.getElementById('settings-sidebar').classList.add('open');
+            }
+            // 右から左へスワイプ（閉じる）
+            if (touchstartX - touchendX > 50) {
+                document.getElementById('settings-sidebar').classList.remove('open');
+            }
+        });
+
+        // --- データ取得 ---
+        let weatherData = null;
+        let newsData = [];
+
+        function getWeatherText(code) {
+            if (code === 0) return '快晴';
+            if (code === 1 || code === 2 || code === 3) return '晴れ時々曇り / 曇り';
+            if (code >= 45 && code <= 48) return '霧';
+            if (code >= 51 && code <= 55) return '霧雨';
+            if (code >= 61 && code <= 65) return '雨';
+            if (code >= 71 && code <= 77) return '雪';
+            if (code >= 80 && code <= 82) return 'にわか雨';
+            if (code >= 85 && code <= 86) return 'にわか雪';
+            if (code >= 95 && code <= 99) return '雷雨';
+            return '不明';
+        }
+
+        async function fetchWeather() {
+            const url = `https://api.open-meteo.com/v1/forecast?latitude=${currentSettings.lat}&longitude=${currentSettings.lon}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=Asia/Tokyo`;
+            try {
+                const res = await fetch(url);
+                weatherData = await res.json();
+            } catch (e) {
+                console.error("Weather fetch error", e);
+            }
+        }
+
+        async function fetchNews() {
+            // CORS回避のため rss2json を使用
+            const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(currentSettings.rssUrl)}`;
+            try {
+                const res = await fetch(proxyUrl);
+                const data = await res.json();
+                if (data.status === 'ok' && data.items) {
+                    // 1分ごとに最新5件を取得
+                    newsData = data.items.slice(0, 5);
+                }
+            } catch (e) {
+                console.error("News fetch error", e);
+            }
+        }
+
+        // --- 画面更新ロジック ---
+        let globalSeconds = 0; // 0から179までループ (3分サイクル)
+
+        function updateDisplays() {
+            const now = new Date();
+            
+            // 時間の文字列化
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            const days = ['日', '月', '火', '水', '木', '金', '土'];
+            const dateStr = `${now.getMonth() + 1}月${now.getDate()}日(${days[now.getDay()]})`;
+
+            // 時計の更新
+            document.getElementById('side-time-display').textContent = `${h}:${m}`;
+            document.getElementById('side-sec-display').textContent = s;
+            document.getElementById('side-date-display').textContent = dateStr;
+            
+            document.getElementById('main-time-display').textContent = `${h}:${m}:${s}`;
+            document.getElementById('main-date-display').textContent = dateStr;
+
+            // モード管理 (0~59: 時計, 60~119: 天気, 120~179: ニュース)
+            const cycleSec = globalSeconds % 180;
+            
+            const pTime = document.getElementById('mode-time');
+            const pWeather = document.getElementById('mode-weather');
+            const pNews = document.getElementById('mode-news');
+            const sideClock = document.getElementById('side-clock');
+
+            if (cycleSec < 60) {
+                // 時計モード
+                pTime.classList.add('active');
+                pWeather.classList.remove('active');
+                pNews.classList.remove('active');
+                sideClock.classList.remove('visible');
+            } else if (cycleSec < 120) {
+                // 天気モード
+                pTime.classList.remove('active');
+                pWeather.classList.add('active');
+                pNews.classList.remove('active');
+                sideClock.classList.add('visible');
+
+                const weatherSec = cycleSec - 60;
+                updateWeatherDisplay(weatherSec);
+            } else {
+                // ニュースモード
+                pTime.classList.remove('active');
+                pWeather.classList.remove('active');
+                pNews.classList.add('active');
+                sideClock.classList.add('visible');
+
+                const newsSec = cycleSec - 120;
+                updateNewsDisplay(newsSec);
+            }
+
+            // 1分(60秒)ごとにニュースと天気を再取得（サイクルの開始時など）
+            if (globalSeconds % 60 === 0) {
+                fetchNews();
+            }
+            if (globalSeconds % 3600 === 0) { // 1時間ごと
+                fetchWeather();
+            }
+
+            globalSeconds++;
+        }
+
+        function updateWeatherDisplay(sec) {
+            const pToday = document.getElementById('weather-today');
+            const pForecast = document.getElementById('weather-forecast');
+
+            if (sec < 30) {
+                // 前半30秒: 今日の天気
+                pToday.classList.add('active');
+                pForecast.classList.remove('active');
+
+                if (weatherData && weatherData.current_weather) {
+                    const cw = weatherData.current_weather;
+                    const daily = weatherData.daily;
+                    document.getElementById('wt-desc').textContent = getWeatherText(cw.weathercode);
+                    document.getElementById('wt-temp').textContent = `${cw.temperature}°C`;
+                    document.getElementById('wt-minmax').textContent = `最高: ${daily.temperature_2m_max[0]}°C / 最低: ${daily.temperature_2m_min[0]}°C`;
+                }
+            } else {
+                // 後半30秒: 明日から5日間の天気
+                pToday.classList.remove('active');
+                pForecast.classList.add('active');
+
+                if (weatherData && weatherData.daily) {
+                    const daily = weatherData.daily;
+                    const box = document.getElementById('forecast-box');
+                    
+                    // 1回だけ生成して再利用する処理
+                    if (box.children.length === 0) {
+                        for (let i = 1; i <= 5; i++) {
+                            const dateObj = new Date(daily.time[i]);
+                            const dStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
+                            const wStr = getWeatherText(daily.weathercode[i]);
+                            const maxT = daily.temperature_2m_max[i];
+                            const minT = daily.temperature_2m_min[i];
+
+                            const html = `
+                                <div class="forecast-item">
+                                    <div class="forecast-date">${dStr}</div>
+                                    <div class="forecast-desc">${wStr}</div>
+                                    <div class="forecast-temp">${maxT}° / ${minT}°</div>
+                                </div>
+                            `;
+                            box.insertAdjacentHTML('beforeend', html);
+                        }
+                    }
+                }
+            }
+        }
+
+        let lastNewsIndex = -1;
+        function updateNewsDisplay(sec) {
+            if (newsData.length === 0) return;
+
+            // 20秒ごとに切り替え (0-19, 20-39, 40-59)
+            // 5件取得しているが、60秒間の枠なので表示されるのは最初の3件
+            const index = Math.floor(sec / 20) % newsData.length;
+            
+            if (lastNewsIndex !== index) {
+                lastNewsIndex = index;
+                const item = newsData[index];
+                document.getElementById('news-title-display').textContent = item.title;
+                
+                qr.set({
+                    value: item.link
+                });
+            }
+        }
+
+        // 初期化
+        loadSettings().then(() => {
+            // 同期を取るため、現在時刻の秒数を初期状態としてセット
+            globalSeconds = new Date().getSeconds();
+            setInterval(updateDisplays, 1000);
+            updateDisplays();
+        });
+
+    </script>
+</body>
+</html>
