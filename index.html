@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart Display v8</title>
+    <title>Smart Display v9</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
     <style>
         :root {
             --bg-color: #121212;
@@ -33,7 +34,6 @@
             height: 100%;
             margin: 0;
             padding: 0;
-            /* 縮小やスクロールを完全に防止 */
             overflow: hidden;
             position: fixed; 
             background-color: var(--bg-color);
@@ -47,27 +47,17 @@
         @font-face { font-family: 'DefaultFontJa'; src: local('sans-serif'); }
         @font-face { font-family: 'DefaultFontEn'; src: local('Arial'); }
 
-        .en-font {
-            font-family: var(--font-en) !important;
-        }
+        .en-font { font-family: var(--font-en) !important; }
 
-        /* 画面外にはみ出たものを確実に隠すためのコンテナ */
         .wrapper {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             overflow: hidden;
         }
 
         .container {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            position: relative;
-            justify-content: center;
-            align-items: center;
+            width: 100%; height: 100%; display: flex;
+            position: relative; justify-content: center; align-items: center;
         }
 
         /* 共通ガラススタイル */
@@ -88,95 +78,55 @@
             box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(255,255,255,0.1);
         }
 
-        /* カーテン要素 */
         .curtain-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background-color: var(--curtain-color);
-            z-index: 9999;
-            pointer-events: none;
-            transform: translateX(-100%);
+            z-index: 9999; pointer-events: none; transform: translateX(-100%);
         }
 
         /* 左上サイド時計 */
-        #side-ui-container {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            z-index: 10;
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        #side-ui-panel {
-            padding: 10px 20px;
-            display: flex;
-            align-items: baseline;
-            opacity: 0; 
-            border-radius: inherit;
-        }
-
+        #side-ui-container { position: absolute; top: 20px; left: 20px; z-index: 10; border-radius: 12px; overflow: hidden; }
+        #side-ui-panel { padding: 10px 20px; display: flex; align-items: baseline; opacity: 0; border-radius: inherit; }
         .side-time { font-size: 2.5vw; font-weight: 300; letter-spacing: 1px; }
         .side-sec { font-size: 1.2vw; color: var(--text-sub); margin-left: 5px; }
 
         /* 右上タイマー */
-        #timer-ui-container {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 10;
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        #timer-ui-panel {
-            padding: 10px 20px;
-            display: flex;
-            align-items: baseline;
-            opacity: 0; 
-            border-radius: inherit;
-        }
-
+        #timer-ui-container { position: absolute; top: 20px; right: 20px; z-index: 10; border-radius: 12px; overflow: hidden; }
+        #timer-ui-panel { padding: 10px 20px; display: flex; align-items: baseline; opacity: 0; border-radius: inherit; }
         .timer-label { font-size: 1vw; color: var(--text-sub); margin-right: 15px; letter-spacing: 2px; }
         .timer-time { font-size: 2.5vw; font-weight: 300; letter-spacing: 1px; }
 
+        /* 上部中央 音楽パネル */
+        #music-ui-container { 
+            position: absolute; top: 20px; left: 50%; transform: translateX(-50%); 
+            z-index: 10; border-radius: 12px; overflow: hidden; 
+            max-width: 40vw; /* 時計とタイマーに被らないように */
+        }
+        #music-ui-panel { 
+            padding: 10px 20px; display: flex; align-items: center; opacity: 0; border-radius: inherit; height: 60px;
+        }
+        .music-icon-box {
+            width: 40px; height: 40px; border-radius: 8px; background: rgba(0,0,0,0.3);
+            display: flex; justify-content: center; align-items: center; margin-right: 15px; overflow: hidden; flex-shrink: 0;
+        }
+        .music-title {
+            font-size: 1.2vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 1px;
+        }
+
         /* メインパネル */
         #main-ui-panel {
-            width: calc(100% - 100px);
-            height: calc(100% - 120px);
-            margin-top: 60px;
-            border-radius: 24px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden;
+            width: calc(100% - 100px); height: calc(100% - 120px); margin-top: 60px;
+            border-radius: 24px; display: flex; justify-content: center; align-items: center; overflow: hidden;
         }
 
-        .mode-content {
-            display: none;
-            width: 100%;
-            height: 100%;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            padding: 40px;
-        }
-
+        .mode-content { display: none; width: 100%; height: 100%; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 40px; }
         .mode-content.active { display: flex; }
 
-        /* 時計モード */
+        /* 各モード中身 */
         .huge-clock-time { font-size: 12vw; font-weight: 200; line-height: 1; letter-spacing: 5px; }
         .huge-clock-date { font-size: 3vw; color: var(--text-sub); margin-top: 20px; letter-spacing: 2px; text-transform: uppercase; }
 
-        /* 天気モード */
-        .weather-sub-panel {
-            display: none; width: 100%; height: 100%;
-            flex-direction: column; justify-content: center; align-items: center;
-        }
+        .weather-sub-panel { display: none; width: 100%; height: 100%; flex-direction: column; justify-content: center; align-items: center; }
         .weather-sub-panel.active { display: flex; }
         .weather-location { font-size: 1.5vw; color: var(--text-main); letter-spacing: 2px; margin-bottom: 5px; text-transform: uppercase; }
         .weather-title { font-size: 1.5vw; color: var(--text-sub); margin-bottom: 20px; letter-spacing: 3px; }
@@ -192,47 +142,28 @@
         .forecast-desc { font-size: 1.5vw; margin-bottom: 15px; line-height: 1.4; text-transform: uppercase; }
         .forecast-temp { font-size: 1.2vw; }
 
-        /* ニュースモード */
         .news-container { display: flex; width: 100%; height: 100%; align-items: center; justify-content: space-between; }
         .news-text-area { flex: 1; padding-right: 40px; text-align: left; }
         .news-header { font-size: 1.5vw; color: var(--text-sub); margin-bottom: 20px; letter-spacing: 2px; }
         .news-title { font-size: 3.5vw; font-weight: 400; line-height: 1.4; }
         .news-qr-area { width: 300px; height: 300px; background: #fff; padding: 20px; border-radius: 16px; display: flex; justify-content: center; align-items: center; }
 
-        /* サイドバー共通 (表示領域外への配置方法を修正) */
+        /* サイドバー共通 */
         .sidebar {
-            position: absolute;
-            top: 0;
-            width: 400px;
-            max-width: 100vw;
-            height: 100%;
-            background: rgba(20, 20, 20, 0.95);
-            backdrop-filter: blur(30px);
-            -webkit-backdrop-filter: blur(30px);
-            z-index: 10000;
-            padding: 40px 30px;
-            display: flex;
-            flex-direction: column;
-            overflow-y: auto;
+            position: absolute; top: 0; width: 400px; max-width: 100vw; height: 100%;
+            background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
+            z-index: 10000; padding: 40px 30px; display: flex; flex-direction: column; overflow-y: auto;
         }
 
-        #settings-sidebar {
-            left: -400px;
-            border-right: 1px solid var(--glass-border-standard);
-            transition: left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
+        #settings-sidebar { left: -400px; border-right: 1px solid var(--glass-border-standard); transition: left 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         #settings-sidebar.open { left: 0; }
-
-        #timer-sidebar {
-            right: -400px;
-            border-left: 1px solid var(--glass-border-standard);
-            transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
+        #timer-sidebar { right: -400px; border-left: 1px solid var(--glass-border-standard); transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
         #timer-sidebar.open { right: 0; }
 
         .settings-title { font-size: 24px; margin-bottom: 30px; padding-bottom: 10px; border-bottom: 1px solid var(--glass-border-standard); }
+        .settings-section-title { font-size: 16px; color: var(--curtain-color); margin-top: 20px; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;}
 
-        .form-group { margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
         .form-group label { display: block; font-size: 12px; color: var(--text-sub); margin-bottom: 5px; }
         .form-group input[type="text"], .form-group input[type="number"], .form-group input[type="time"], .form-group select {
             width: 100%; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border-standard); border-radius: 8px; color: #fff; font-size: 14px; outline: none;
@@ -252,12 +183,11 @@
         .btn-danger:hover { background: #ff6b81; }
         .btn-secondary { background: transparent; color: #fff; border: 1px solid var(--glass-border-standard); }
         .btn-secondary:hover { background: rgba(255,255,255,0.1); }
+        .btn-small { padding: 8px; font-size: 14px; margin-top: 0;}
 
-        /* スワイプ検知用エリア */
         .swipe-zone { position: absolute; top: 0; width: 30px; height: 100%; z-index: 50; }
         #swipe-zone-left { left: 0; }
         #swipe-zone-right { right: 0; }
-
         .hidden { display: none !important; }
 
     </style>
@@ -288,6 +218,16 @@
                 <div class="curtain-overlay"></div>
             </div>
 
+            <div id="music-ui-container">
+                <div id="music-ui-panel" class="glass-panel">
+                    <div id="music-icon" class="music-icon-box">
+                        <svg viewBox="0 0 24 24" fill="var(--text-main)" style="width:60%; height:60%;"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                    </div>
+                    <div class="music-title en-font" id="music-title">TITLE</div>
+                </div>
+                <div class="curtain-overlay"></div>
+            </div>
+
             <div id="main-ui-panel" class="glass-panel">
                 <div id="mode-time" class="mode-content">
                     <div class="huge-clock-time en-font" id="main-time-display">00:00:00</div>
@@ -304,7 +244,6 @@
                             <span class="temp-max en-font" id="wt-max">--°C</span> <span class="en-font">/</span> <span class="temp-min en-font" id="wt-min">--°C</span>
                         </div>
                     </div>
-                    
                     <div id="weather-forecast" class="weather-sub-panel">
                         <div class="weather-location en-font" id="location-name-forecast">--</div>
                         <div class="weather-title en-font">5-DAY FORECAST</div>
@@ -346,6 +285,25 @@
                 <label>カーテンの色</label>
                 <input type="color" id="input-curtain">
             </div>
+
+            <div class="settings-section-title">音楽設定</div>
+            <div class="form-group">
+                <label>曲名表示秒数 (デフォルト 10)</label>
+                <input type="number" id="input-music-sec" min="3" value="10">
+            </div>
+            <div class="form-group">
+                <label>音楽ファイル (MP3複数選択可)</label>
+                <input type="file" id="input-music-files" accept="audio/mpeg, audio/mp3" multiple onchange="handleMusicUpload(event)">
+                <div id="music-status" style="font-size: 12px; margin-top: 5px; color: var(--text-sub);">TRACKS LOADED: 0</div>
+                <div class="flex-row" style="margin-top:10px;">
+                    <button class="btn btn-secondary btn-small" onclick="clearMusic()">全曲削除</button>
+                </div>
+                <div class="flex-row" style="margin-top:10px;">
+                    <button class="btn btn-secondary btn-small" id="btn-music-play" onclick="toggleMusic()">再生 / 停止</button>
+                </div>
+            </div>
+
+            <div class="settings-section-title">表示サイクル設定</div>
             <div class="form-group">
                 <label>時計の表示秒数 (デフォルト 60)</label>
                 <input type="number" id="input-time-sec" min="10">
@@ -358,6 +316,8 @@
                 <label>ニュースの表示秒数 (デフォルト 60)</label>
                 <input type="number" id="input-news-sec" min="10">
             </div>
+
+            <div class="settings-section-title">情報取得元</div>
             <div class="form-group flex-row">
                 <div>
                     <label>緯度 (Lat)</label>
@@ -372,6 +332,8 @@
                 <label>Yahoo RSS URL</label>
                 <input type="text" id="input-rss">
             </div>
+
+            <div class="settings-section-title">デザインカスタマイズ</div>
             <div class="form-group">
                 <label>日本語フォント</label>
                 <input type="file" id="input-font-ja" accept=".ttf,.otf,.woff,.woff2">
@@ -386,11 +348,10 @@
             </div>
             
             <button class="btn" onclick="saveSettings()">保存して適用</button>
-        </div>
+            <div style="height: 50px;"></div> </div>
 
         <div id="timer-sidebar" class="sidebar">
             <div class="settings-title">タイマー設定</div>
-            
             <div class="form-group">
                 <label>モード</label>
                 <select id="timer-mode-select" onchange="switchTimerMode()">
@@ -398,23 +359,13 @@
                     <option value="target">時刻指定 (Target Time)</option>
                 </select>
             </div>
-
             <div id="timer-duration-inputs" class="form-group flex-row">
-                <div>
-                    <label>時間</label>
-                    <input type="number" id="timer-hours" min="0" max="99" value="0">
-                </div>
-                <div>
-                    <label>分</label>
-                    <input type="number" id="timer-minutes" min="0" max="59" value="5">
-                </div>
+                <div><label>時間</label><input type="number" id="timer-hours" min="0" max="99" value="0"></div>
+                <div><label>分</label><input type="number" id="timer-minutes" min="0" max="59" value="5"></div>
             </div>
-
             <div id="timer-target-inputs" class="form-group hidden">
-                <label>終了時刻</label>
-                <input type="time" id="timer-target-time">
+                <label>終了時刻</label><input type="time" id="timer-target-time">
             </div>
-            
             <button class="btn" id="btn-timer-start" onclick="startTimer()">スタート</button>
             <div class="flex-row" style="margin-top:10px;">
                 <button class="btn btn-secondary" id="btn-timer-stop" onclick="stopTimer()" disabled>ストップ</button>
@@ -425,12 +376,11 @@
 
     <script>
         const DEFAULT_SETTINGS = {
-            glassStyle: 'standard',
-            timeSec: 60, weatherSec: 60, newsSec: 60,
-            blurAmount: 20, curtainColor: '#ff8c00',
-            lat: 35.6895, lon: 139.6917,
+            glassStyle: 'standard', timeSec: 60, weatherSec: 60, newsSec: 60,
+            blurAmount: 20, curtainColor: '#ff8c00', lat: 35.6895, lon: 139.6917,
             rssUrl: 'https://news.yahoo.co.jp/rss/topics/top-picks.xml',
-            fontDataJa: null, fontDataEn: null, bgData: null
+            fontDataJa: null, fontDataEn: null, bgData: null,
+            musicSec: 10, isMusicPlaying: false
         };
 
         let currentSettings = { ...DEFAULT_SETTINGS };
@@ -446,6 +396,7 @@
             document.getElementById('input-news-sec').value = currentSettings.newsSec;
             document.getElementById('input-blur').value = currentSettings.blurAmount;
             document.getElementById('input-curtain').value = currentSettings.curtainColor;
+            document.getElementById('input-music-sec').value = currentSettings.musicSec || 10;
             document.getElementById('input-lat').value = currentSettings.lat;
             document.getElementById('input-lon').value = currentSettings.lon;
             document.getElementById('input-rss').value = currentSettings.rssUrl;
@@ -454,6 +405,7 @@
             fetchLocationName();
             fetchWeather();
             fetchNews();
+            initMusicSystem();
         }
 
         async function saveSettings() {
@@ -463,6 +415,7 @@
             currentSettings.newsSec = parseInt(document.getElementById('input-news-sec').value) || DEFAULT_SETTINGS.newsSec;
             currentSettings.blurAmount = parseInt(document.getElementById('input-blur').value) || 0;
             currentSettings.curtainColor = document.getElementById('input-curtain').value || DEFAULT_SETTINGS.curtainColor;
+            currentSettings.musicSec = parseInt(document.getElementById('input-music-sec').value) || 10;
             currentSettings.lat = parseFloat(document.getElementById('input-lat').value) || DEFAULT_SETTINGS.lat;
             currentSettings.lon = parseFloat(document.getElementById('input-lon').value) || DEFAULT_SETTINGS.lon;
             currentSettings.rssUrl = document.getElementById('input-rss').value || DEFAULT_SETTINGS.rssUrl;
@@ -517,6 +470,174 @@
             });
         }
 
+        // --- 音楽再生システム ---
+        let playlist = [];
+        let shuffleQueue = [];
+        const audioPlayer = new Audio();
+        let currentObjectURL = null;
+        let isMusicVisible = false;
+        let musicNoticeTimeout = null;
+
+        audioPlayer.addEventListener('ended', playNextTrack);
+
+        async function initMusicSystem() {
+            const savedMusic = await localforage.getItem('smartDisplayMusic');
+            if (savedMusic) playlist = savedMusic;
+            updateMusicStatusUI();
+
+            // 以前再生中だった場合、再生を試みる（ブラウザのポリシーで弾かれる可能性あり）
+            if(currentSettings.isMusicPlaying && playlist.length > 0) {
+                try {
+                    playNextTrack();
+                } catch(e) {
+                    currentSettings.isMusicPlaying = false;
+                    localforage.setItem('smartDisplaySettings', currentSettings);
+                }
+            }
+        }
+
+        function updateMusicStatusUI() {
+            document.getElementById('music-status').textContent = `TRACKS LOADED: ${playlist.length}`;
+            const btn = document.getElementById('btn-music-play');
+            btn.textContent = currentSettings.isMusicPlaying ? '停止 (STOP)' : '再生 (PLAY)';
+            if(playlist.length === 0) btn.textContent = 'NO MUSIC';
+        }
+
+        async function handleMusicUpload(event) {
+            const files = event.target.files;
+            if(!files || files.length === 0) return;
+            
+            document.getElementById('music-status').textContent = `READING ${files.length} FILES...`;
+            const jsmediatags = window.jsmediatags;
+            let newTracks = [];
+
+            for(let file of files) {
+                let title = file.name.replace(/\.[^/.]+$/, "");
+                let cover = null;
+
+                try {
+                    const tag = await new Promise((resolve, reject) => {
+                        jsmediatags.read(file, {
+                            onSuccess: resolve,
+                            onError: reject
+                        });
+                    });
+
+                    if (tag.tags) {
+                        if (tag.tags.title) title = tag.tags.title;
+                        if (tag.tags.picture) {
+                            const pic = tag.tags.picture;
+                            let base64String = "";
+                            const chunkSize = 8192;
+                            for (let i = 0; i < pic.data.length; i += chunkSize) {
+                                base64String += String.fromCharCode.apply(null, pic.data.slice(i, i + chunkSize));
+                            }
+                            cover = `data:${pic.format};base64,${window.btoa(base64String)}`;
+                        }
+                    }
+                } catch (e) {
+                    console.log("ID3 read failed for", file.name);
+                }
+                newTracks.push({ title, cover, blob: file });
+            }
+
+            playlist = playlist.concat(newTracks);
+            await localforage.setItem('smartDisplayMusic', playlist);
+            updateMusicStatusUI();
+            
+            // 入力リセット
+            event.target.value = '';
+        }
+
+        async function clearMusic() {
+            playlist = [];
+            shuffleQueue = [];
+            await localforage.removeItem('smartDisplayMusic');
+            if(currentSettings.isMusicPlaying) toggleMusic();
+            updateMusicStatusUI();
+        }
+
+        function toggleMusic() {
+            if(playlist.length === 0) return;
+            
+            if(currentSettings.isMusicPlaying) {
+                // 停止処理
+                audioPlayer.pause();
+                currentSettings.isMusicPlaying = false;
+                if(isMusicVisible) {
+                    playCurtain('music-ui-container', () => { document.getElementById('music-ui-panel').style.opacity = '0'; });
+                    isMusicVisible = false;
+                }
+            } else {
+                // 再生処理
+                currentSettings.isMusicPlaying = true;
+                if(audioPlayer.src && audioPlayer.currentTime > 0) {
+                    audioPlayer.play().catch(e => console.log(e));
+                } else {
+                    playNextTrack();
+                }
+            }
+            localforage.setItem('smartDisplaySettings', currentSettings);
+            updateMusicStatusUI();
+        }
+
+        function playNextTrack() {
+            if(playlist.length === 0) return;
+
+            // シャッフルキューが空なら補充してシャッフル
+            if(shuffleQueue.length === 0) {
+                for(let i=0; i<playlist.length; i++) shuffleQueue.push(i);
+                for(let i=shuffleQueue.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffleQueue[i], shuffleQueue[j]] = [shuffleQueue[j], shuffleQueue[i]];
+                }
+            }
+
+            const nextIndex = shuffleQueue.pop();
+            const track = playlist[nextIndex];
+
+            if(currentObjectURL) URL.revokeObjectURL(currentObjectURL);
+            currentObjectURL = URL.createObjectURL(track.blob);
+            audioPlayer.src = currentObjectURL;
+            audioPlayer.play().catch(e => {
+                console.error("Autoplay prevented", e);
+                currentSettings.isMusicPlaying = false;
+                updateMusicStatusUI();
+            });
+
+            showMusicUI(track);
+        }
+
+        function showMusicUI(track) {
+            const updateContent = () => {
+                document.getElementById('music-title').textContent = track.title;
+                if(track.cover) {
+                    document.getElementById('music-icon').innerHTML = `<img src="${track.cover}" style="width: 100%; height: 100%; object-fit: cover;">`;
+                } else {
+                    document.getElementById('music-icon').innerHTML = `<svg viewBox="0 0 24 24" fill="var(--text-main)" style="width:60%; height:60%;"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>`;
+                }
+                document.getElementById('music-ui-panel').style.opacity = '1';
+            };
+
+            if (!isMusicVisible) {
+                playCurtain('music-ui-container', updateContent);
+                isMusicVisible = true;
+            } else {
+                playCurtain('music-ui-container', updateContent);
+            }
+
+            if(musicNoticeTimeout) clearTimeout(musicNoticeTimeout);
+            musicNoticeTimeout = setTimeout(() => {
+                if(isMusicVisible) {
+                    playCurtain('music-ui-container', () => {
+                        document.getElementById('music-ui-panel').style.opacity = '0';
+                    });
+                    isMusicVisible = false;
+                }
+            }, currentSettings.musicSec * 1000);
+        }
+
+
         // --- タイマー管理 ---
         let timerEndTime = null;
         let isTimerRunning = false;
@@ -536,14 +657,12 @@
 
         function startTimer() {
             if (isTimerRunning) return;
-
             const mode = document.getElementById('timer-mode-select').value;
             let targetTimeMs = 0;
 
             if (mode === 'duration') {
                 const hrs = parseInt(document.getElementById('timer-hours').value) || 0;
                 const mins = parseInt(document.getElementById('timer-minutes').value) || 0;
-                
                 if (timerRemainingMs > 0 && !timerEndTime) {
                     targetTimeMs = Date.now() + timerRemainingMs;
                 } else {
@@ -554,20 +673,15 @@
             } else {
                 const targetStr = document.getElementById('timer-target-time').value;
                 if (!targetStr) return;
-                
                 const now = new Date();
                 const [targetHrs, targetMins] = targetStr.split(':').map(Number);
                 const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), targetHrs, targetMins, 0);
-                
-                if (targetDate.getTime() <= now.getTime()) {
-                    targetDate.setDate(targetDate.getDate() + 1);
-                }
+                if (targetDate.getTime() <= now.getTime()) targetDate.setDate(targetDate.getDate() + 1);
                 targetTimeMs = targetDate.getTime();
             }
 
             timerEndTime = targetTimeMs;
             isTimerRunning = true;
-            
             document.getElementById('btn-timer-start').disabled = true;
             document.getElementById('btn-timer-stop').disabled = false;
             document.getElementById('btn-timer-reset').disabled = false;
@@ -587,23 +701,16 @@
         }
 
         function resetTimer() {
-            isTimerRunning = false;
-            timerEndTime = null;
-            timerRemainingMs = 0;
+            isTimerRunning = false; timerEndTime = null; timerRemainingMs = 0;
             document.getElementById('btn-timer-start').disabled = false;
             document.getElementById('btn-timer-stop').disabled = true;
             document.getElementById('btn-timer-reset').disabled = true;
         }
 
         function processTimerDisplay() {
-            let remaining = 0;
-            let displayStr = "00:00:00";
-            
-            if (isTimerRunning && timerEndTime) {
-                remaining = timerEndTime - Date.now();
-            } else if (!isTimerRunning && timerRemainingMs > 0) {
-                remaining = timerRemainingMs;
-            }
+            let remaining = 0; let displayStr = "00:00:00";
+            if (isTimerRunning && timerEndTime) remaining = timerEndTime - Date.now();
+            else if (!isTimerRunning && timerRemainingMs > 0) remaining = timerRemainingMs;
 
             if (remaining > 0) {
                 const totalSeconds = Math.ceil(remaining / 1000);
@@ -613,26 +720,19 @@
                 displayStr = `${h}:${m}:${s}`;
                 
                 if (!isTimerVisible) {
-                    playCurtain('timer-ui-container', () => {
-                        document.getElementById('timer-ui-panel').style.opacity = '1';
-                    });
+                    playCurtain('timer-ui-container', () => { document.getElementById('timer-ui-panel').style.opacity = '1'; });
                     isTimerVisible = true;
                 }
                 document.getElementById('timer-display').textContent = displayStr;
             } else {
                 document.getElementById('timer-display').textContent = "00:00:00";
-                if (isTimerRunning) {
-                    resetTimer(); 
-                }
+                if (isTimerRunning) resetTimer(); 
                 if (isTimerVisible) {
-                    playCurtain('timer-ui-container', () => {
-                        document.getElementById('timer-ui-panel').style.opacity = '0';
-                    });
+                    playCurtain('timer-ui-container', () => { document.getElementById('timer-ui-panel').style.opacity = '0'; });
                     isTimerVisible = false;
                 }
             }
         }
-
 
         // --- データ取得 ---
         let weatherData = null;
@@ -666,10 +766,7 @@
 
         async function fetchWeather() {
             const url = `https://api.open-meteo.com/v1/forecast?latitude=${currentSettings.lat}&longitude=${currentSettings.lon}&current_weather=true&daily=weathercode,temperature_2m_max,temperature_2m_min&timezone=Asia/Tokyo`;
-            try {
-                const res = await fetch(url);
-                weatherData = await res.json();
-            } catch (e) {}
+            try { const res = await fetch(url); weatherData = await res.json(); } catch (e) {}
         }
 
         async function fetchNews() {
@@ -680,7 +777,6 @@
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(json.contents, 'application/xml');
                 const items = doc.querySelectorAll('item');
-                
                 let newNewsData = [];
                 for (let i = 0; i < items.length && newNewsData.length < 5; i++) {
                     const title = items[i].querySelector('title')?.textContent;
@@ -705,7 +801,6 @@
             
             setTimeout(() => {
                 if(callback) callback();
-                
                 setTimeout(() => {
                     curtain.style.transform = 'translateX(100%)';
                     setTimeout(() => {
