@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Smart Display v11</title>
+    <title>Smart Display v12</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jsmediatags/3.9.5/jsmediatags.min.js"></script>
@@ -69,8 +69,8 @@
         }
 
         .container {
-            width: 100%; height: 100%; display: flex;
-            position: relative; justify-content: center; align-items: center;
+            width: 100%; height: 100%; 
+            position: relative;
         }
 
         .glass-panel {
@@ -80,6 +80,7 @@
             border: 1px solid var(--glass-border-standard);
             box-shadow: var(--glass-shadow-standard);
             position: relative;
+            border-radius: 20px;
         }
 
         .glass-panel.liquid {
@@ -96,19 +97,18 @@
             z-index: 9999; pointer-events: none; transform: translateX(-100%);
         }
 
-        /* 左上サイド時計 */
+        /* --- 上部の小さいUIたち --- */
+        /* 位置を絶対指定し、サイズはmax()を使って小さくなりすぎないように維持 */
         #side-ui-container { position: absolute; top: 20px; left: 20px; z-index: 10; border-radius: 12px; overflow: hidden; }
         #side-ui-panel { padding: 10px 20px; display: flex; align-items: baseline; opacity: 0; border-radius: inherit; }
         .side-time { font-size: max(16px, 2.5vw); font-weight: 300; letter-spacing: 1px; }
         .side-sec { font-size: max(10px, 1.2vw); color: var(--text-sub); margin-left: 5px; }
 
-        /* 右上タイマー */
         #timer-ui-container { position: absolute; top: 20px; right: 20px; z-index: 10; border-radius: 12px; overflow: hidden; }
         #timer-ui-panel { padding: 10px 20px; display: flex; align-items: baseline; opacity: 0; border-radius: inherit; }
         .timer-label { font-size: max(10px, 1vw); color: var(--text-sub); margin-right: 15px; letter-spacing: 2px; }
         .timer-time { font-size: max(16px, 2.5vw); font-weight: 300; letter-spacing: 1px; }
 
-        /* 上部中央 音楽パネル */
         #music-ui-container { 
             position: absolute; top: 20px; left: 50%; transform: translateX(-50%); 
             z-index: 10; border-radius: 12px; overflow: hidden; 
@@ -125,65 +125,61 @@
         .music-playing-text { font-size: 10px; color: var(--curtain-color); font-weight: bold; letter-spacing: 1px; line-height: 1; margin-bottom: 4px; }
         .music-title { font-size: max(12px, 1.2vw); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: 1px; line-height: 1.2; margin-bottom: 4px;}
         
-        /* 音楽プログレスバー */
         #music-progress-container { width: 100%; display: flex; flex-direction: column; }
         #music-time-text { font-size: 10px; color: var(--text-sub); margin-bottom: 4px; line-height: 1; }
         #music-progress-bg { width: 100%; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; overflow: hidden; }
         #music-progress-bar { width: 0%; height: 100%; background: var(--curtain-color); transition: width 0.2s linear; }
 
-        /* メインパネル */
+        /* --- メインパネル (全デバイスで完全同一レイアウト・オーバーフロー禁止) --- */
         #main-ui-panel {
-            width: calc(100% - 100px); height: calc(100% - 140px); margin-top: 80px;
+            position: absolute;
+            top: 100px; /* 上部UIとの距離をPCでもスマホでも完全固定 */
+            left: 20px;
+            width: calc(100% - 40px);
+            height: calc(100% - 120px);
             border-radius: 24px; display: flex; justify-content: center; align-items: center; overflow: hidden;
         }
 
-        .mode-content { display: none; width: 100%; height: 100%; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 40px; }
+        .mode-content { display: none; width: 100%; height: 100%; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 4%; overflow: hidden; }
         .mode-content.active { display: flex; }
 
-        .huge-clock-time { font-size: 18vmin; font-weight: 200; line-height: 1; letter-spacing: 5px; }
-        .huge-clock-date { font-size: 5vmin; color: var(--text-sub); margin-top: 20px; letter-spacing: 2px; text-transform: uppercase; }
+        /* 時計モード */
+        .huge-clock-time { font-size: 15vw; font-weight: 200; line-height: 1; letter-spacing: 2vw; }
+        .huge-clock-date { font-size: 4vw; color: var(--text-sub); margin-top: 2%; letter-spacing: 0.5vw; text-transform: uppercase; }
 
-        .weather-sub-panel { display: none; width: 100%; height: 100%; flex-direction: column; justify-content: center; align-items: center; }
+        /* 天気モード */
+        .weather-sub-panel { display: none; width: 100%; height: 100%; flex-direction: column; justify-content: center; align-items: center; overflow: hidden; }
         .weather-sub-panel.active { display: flex; }
-        .weather-location { font-size: 3vmin; color: var(--text-main); letter-spacing: 2px; margin-bottom: 5px; text-transform: uppercase; }
-        .weather-title { font-size: 2.5vmin; color: var(--text-sub); margin-bottom: 2vmin; letter-spacing: 3px; }
-        .weather-main-temp { font-size: 15vmin; font-weight: 300; line-height: 1; }
-        .weather-desc { font-size: 5vmin; margin: 2vmin 0; letter-spacing: 2px; text-transform: uppercase; }
-        .weather-minmax { font-size: 3.5vmin; color: var(--text-sub); }
+        .weather-location { font-size: 2vw; color: var(--text-main); letter-spacing: 0.5vw; margin-bottom: 1%; text-transform: uppercase; }
+        .weather-title { font-size: 1.5vw; color: var(--text-sub); margin-bottom: 2%; letter-spacing: 0.5vw; }
+        .weather-main-temp { font-size: 10vw; font-weight: 300; line-height: 1; }
+        .weather-desc { font-size: 4vw; margin: 2% 0; letter-spacing: 0.2vw; text-transform: uppercase; }
+        .weather-minmax { font-size: 2vw; color: var(--text-sub); }
         .temp-max { color: #ff6b6b; font-weight: bold; }
         .temp-min { color: #4dabf7; font-weight: bold; }
 
-        .forecast-container { display: flex; justify-content: space-between; width: 100%; margin-top: 30px; }
-        .forecast-item { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 16px; width: 18%; }
-        .forecast-date { font-size: 2.5vmin; margin-bottom: 10px; text-transform: uppercase; }
-        .forecast-desc { font-size: 2.5vmin; margin-bottom: 10px; line-height: 1.4; text-transform: uppercase; }
-        .forecast-temp { font-size: 2vmin; }
+        /* 予報モード (絶対にはみ出さないように%とvwのみで構成) */
+        .forecast-container { display: flex; justify-content: space-between; width: 100%; height: auto; margin-top: 4%; gap: 2%; }
+        .forecast-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: rgba(0,0,0,0.2); padding: 2% 1%; border-radius: 1vw; overflow: hidden; }
+        .forecast-date { font-size: 1.8vw; margin-bottom: 5%; text-transform: uppercase; white-space: nowrap; }
+        .forecast-desc { font-size: 1.8vw; margin-bottom: 5%; line-height: 1.2; text-transform: uppercase; text-align: center; }
+        .forecast-temp { font-size: 1.5vw; white-space: nowrap; }
 
-        .news-container { display: flex; width: 100%; height: 100%; align-items: center; justify-content: space-between; }
-        .news-text-area { flex: 1; padding-right: 40px; text-align: left; }
-        .news-header { font-size: 2.5vmin; color: var(--text-sub); margin-bottom: 2vmin; letter-spacing: 2px; }
-        .news-title { font-size: 5.5vmin; font-weight: 400; line-height: 1.4; }
-        .news-qr-area { width: 260px; height: 260px; background: #fff; padding: 20px; border-radius: 16px; display: flex; justify-content: center; align-items: center; flex-shrink: 0; }
+        /* ニュースモード */
+        .news-container { display: flex; width: 100%; height: 100%; align-items: center; justify-content: space-between; gap: 4%; overflow: hidden; }
+        .news-text-area { flex: 1; text-align: left; display: flex; flex-direction: column; justify-content: center; height: 100%; overflow: hidden; }
+        .news-header { font-size: 2vw; color: var(--text-sub); margin-bottom: 2%; letter-spacing: 0.2vw; }
+        /* ニュースタイトルは長すぎても枠を越えないように行数制限 */
+        .news-title { font-size: 4vw; font-weight: 400; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
+        
+        /* QRコードは画面幅の25%で正方形を維持。スマホでもPCでも絶対に比率崩壊やはみ出しを起こさない */
+        .news-qr-area { 
+            width: 25%; aspect-ratio: 1/1; max-width: 40vh; max-height: 40vh;
+            background: #fff; padding: 2%; border-radius: 1vw; display: flex; justify-content: center; align-items: center; flex-shrink: 0; 
+        }
         #news-qr { width: 100%; height: 100%; object-fit: contain; }
 
-        @media (max-aspect-ratio: 1/1), (max-width: 768px) {
-            #main-ui-panel { width: calc(100% - 40px); height: calc(100% - 130px); margin-top: 90px; }
-            .mode-content { padding: 20px; }
-            #music-ui-container { width: 80vw; }
-            
-            .news-container { flex-direction: column; justify-content: center; text-align: center; }
-            .news-text-area { padding-right: 0; padding-bottom: 20px; text-align: center; }
-            .news-title { font-size: 6.5vmin; }
-            .news-qr-area { width: 160px; height: 160px; padding: 10px; }
-
-            .forecast-container { flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 15px; }
-            .forecast-item { width: calc(33% - 10px); padding: 10px; }
-            .forecast-date { font-size: 3vmin; }
-            .forecast-desc { font-size: 3vmin; }
-            .forecast-temp { font-size: 2.5vmin; }
-        }
-
-        /* サイドバー共通 */
+        /* --- サイドバー共通 --- */
         .sidebar {
             position: absolute; top: 0; width: 400px; max-width: 100vw; height: 100%;
             background: rgba(20, 20, 20, 0.95); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px);
@@ -451,6 +447,7 @@
         };
 
         let currentSettings = { ...DEFAULT_SETTINGS };
+        // QRコードは300px固定で高画質生成し、CSS側で枠に合わせて縮小表示する
         const qr = new QRious({ element: document.getElementById('news-qr'), size: 300 });
 
         async function loadSettings() {
@@ -513,7 +510,6 @@
             fetchNews();
             globalSeconds = 0; 
             
-            // 常に表示モードが切り替わった時の処理 (カーテン付き)
             if (previousAlwaysShow !== currentSettings.musicAlwaysShow) {
                 const progContainer = document.getElementById('music-progress-container');
                 if (currentSettings.musicAlwaysShow) {
@@ -568,7 +564,6 @@
             });
         }
 
-        // --- カーテンアニメーション処理 ---
         function playCurtain(containerId, callback) {
             const container = document.getElementById(containerId);
             let curtain = container.querySelector('.curtain-overlay');
@@ -592,7 +587,7 @@
             }, 400);
         }
 
-        // --- タイマー管理 (永続化対応) ---
+        // --- タイマー管理 ---
         let timerEndTime = null;
         let isTimerRunning = false;
         let isTimerVisible = false;
@@ -606,9 +601,8 @@
                 timerRemainingMs = savedTimer.timerRemainingMs;
                 
                 if (isTimerRunning && timerEndTime) {
-                    if (timerEndTime <= Date.now()) {
-                        resetTimer(); // 放置中に終わった
-                    } else {
+                    if (timerEndTime <= Date.now()) resetTimer(); 
+                    else {
                         document.getElementById('btn-timer-start').disabled = true;
                         document.getElementById('btn-timer-stop').disabled = false;
                         document.getElementById('btn-timer-reset').disabled = false;
@@ -720,7 +714,6 @@
             }
         }
 
-
         // --- 音楽再生システム ---
         let playlist = [];
         let shuffleQueue = [];
@@ -735,11 +728,9 @@
             const savedMusic = await localforage.getItem('smartDisplayMusic');
             if (savedMusic) playlist = savedMusic;
             
-            // ロード時はブラウザポリシーにより自動再生不可のため必ず停止状態にする
             currentSettings.isMusicPlaying = false;
             await localforage.setItem('smartDisplaySettings', currentSettings);
             
-            // 初期状態はプログレスバー表示設定に合わせる
             if (currentSettings.musicAlwaysShow) {
                 document.getElementById('music-progress-container').classList.remove('hidden');
             } else {
@@ -820,13 +811,11 @@
                 currentSettings.isMusicPlaying = true;
                 if(audioPlayer.src && audioPlayer.currentTime > 0) {
                     audioPlayer.play().catch(e => console.log(e));
-                    // 一時停止からの再開時
                     if (!isMusicVisible && playlist.length > 0) {
                         if (currentSettings.musicAlwaysShow) {
                             playCurtain('music-ui-container', () => { document.getElementById('music-ui-panel').style.opacity = '1'; });
                             isMusicVisible = true;
                         } else {
-                            // 常に表示でないなら、再開時に曲情報をカーテンで出す
                             showMusicUI(playlist[shuffleQueue.length > 0 ? shuffleQueue[shuffleQueue.length - 1] : 0], true);
                         }
                     }
@@ -877,11 +866,9 @@
 
             if (musicNoticeTimeout) clearTimeout(musicNoticeTimeout);
 
-            // 表示されていても曲が変わればカーテンを走らせる
             playCurtain('music-ui-container', updateContent);
             isMusicVisible = true;
 
-            // 常に表示モードでなければ、指定秒数後に隠す
             if (!currentSettings.musicAlwaysShow) {
                 musicNoticeTimeout = setTimeout(() => {
                     if(isMusicVisible) {
@@ -894,7 +881,6 @@
             }
         }
 
-        // 音楽プログレスバーの更新用高速ループ
         setInterval(() => {
             if (currentSettings.isMusicPlaying && currentSettings.musicAlwaysShow && isMusicVisible) {
                 const duration = audioPlayer.duration || 0;
@@ -910,7 +896,6 @@
                 document.getElementById('music-time-text').textContent = `${curM}:${curS} / ${durM}:${durS}`;
             }
         }, 250);
-
 
         // --- データ取得 ---
         let weatherData = null;
