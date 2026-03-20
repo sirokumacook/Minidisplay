@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Display v3</title>
+    <title>Smart Display v4</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <style>
@@ -17,7 +17,8 @@
             --font-ja: 'DefaultFontJa', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
             --font-en: 'DefaultFontEn', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             
-            --curtain-color: #ff8c00; /* デフォルトのオレンジ */
+            --curtain-color: #ff8c00;
+            --blur-amount: 20px;
         }
 
         * {
@@ -46,7 +47,7 @@
         .side-time, .side-sec, 
         .huge-clock-time, 
         .weather-main-temp, .forecast-date, .forecast-temp,
-        .news-header {
+        .news-header, .weather-title, .weather-location, .weather-alerts {
             font-family: var(--font-en);
         }
 
@@ -55,30 +56,42 @@
             height: 100%;
             display: flex;
             position: relative;
+            justify-content: center;
+            align-items: center;
         }
 
-        /* サイド時計コンテナ（カーテン制約用） */
-        #side-clock-container {
+        /* UIの共通ガラススタイル */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(var(--blur-amount));
+            -webkit-backdrop-filter: blur(var(--blur-amount));
+            border: 1px solid var(--glass-border);
+            position: relative;
+            overflow: hidden; /* カーテンのはみ出しを防ぐ */
+        }
+
+        /* カーテン要素 */
+        .curtain-overlay {
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background-color: var(--curtain-color);
+            z-index: 9999;
+        }
+
+        /* サイド時計 */
+        #side-ui-panel {
             position: absolute;
             top: 20px;
             left: 20px;
-            z-index: 10;
             border-radius: 12px;
-            overflow: hidden;
-        }
-
-        #side-clock-content {
-            background: var(--glass-bg);
-            backdrop-filter: blur(15px);
-            -webkit-backdrop-filter: blur(15px);
-            border: 1px solid var(--glass-border);
-            border-radius: 12px;
-            display: flex;
-            flex-direction: row;
-            justify-content: center;
-            align-items: baseline;
             padding: 10px 20px;
-            opacity: 0;
+            display: flex;
+            align-items: baseline;
+            opacity: 0; /* 初期は非表示 */
+            z-index: 10;
         }
 
         .side-time {
@@ -93,50 +106,34 @@
             margin-left: 5px;
         }
 
-        /* メインコンテンツエリア */
-        #main-content {
-            flex-grow: 1;
-            position: relative;
-            width: 100%;
-            height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            overflow: hidden; /* カーテン制約用 */
-        }
-
-        .mode-panel {
-            position: absolute;
+        /* メインパネル */
+        #main-ui-panel {
             width: calc(100% - 100px);
             height: calc(100% - 120px);
             margin-top: 60px;
+            border-radius: 24px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
             display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .mode-content {
+            display: none; /* アクティブ時以外は非表示 */
+            width: 100%;
+            height: 100%;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            opacity: 0;
-            pointer-events: none;
-            background: var(--glass-bg);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid var(--glass-border);
-            border-radius: 24px;
+            text-align: center;
             padding: 40px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-            /* カーテンの裏で切り替わるためtransitionは不要 */
         }
 
-        .mode-panel.active {
-            opacity: 1;
-            pointer-events: auto;
+        .mode-content.active {
+            display: flex;
         }
 
         /* 時計モード */
-        #mode-time {
-            width: 80%;
-            height: 80%;
-            margin-top: 0;
-        }
         .huge-clock-time {
             font-size: 12vw;
             font-weight: 200;
@@ -158,15 +155,30 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            text-align: center;
         }
         .weather-sub-panel.active {
             display: flex;
         }
+        .weather-location {
+            font-size: 1.5vw;
+            color: var(--text-main);
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
         .weather-title {
-            font-size: 2vw;
+            font-size: 1.5vw;
             color: var(--text-sub);
             margin-bottom: 20px;
+            letter-spacing: 3px;
+        }
+        .weather-alerts {
+            font-size: 1.2vw;
+            color: #ff6b6b;
+            margin-top: 15px;
+            letter-spacing: 1px;
+            border: 1px solid #ff6b6b;
+            padding: 5px 15px;
+            border-radius: 20px;
         }
         .weather-main-temp {
             font-size: 8vw;
@@ -175,13 +187,12 @@
         }
         .weather-desc {
             font-size: 3vw;
-            margin: 20px 0;
+            margin: 10px 0;
         }
         .weather-minmax {
             font-size: 2vw;
             color: var(--text-sub);
         }
-        /* 気温の色分け */
         .temp-max { color: #ff6b6b; font-weight: bold; }
         .temp-min { color: #4dabf7; font-weight: bold; }
 
@@ -201,7 +212,7 @@
             width: 18%;
         }
         .forecast-date { font-size: 1.5vw; margin-bottom: 10px; }
-        .forecast-desc { font-size: 1.5vw; margin-bottom: 10px; line-height: 1.4; }
+        .forecast-desc { font-size: 2vw; margin-bottom: 10px; line-height: 1.4; }
         .forecast-temp { font-size: 1.2vw; }
 
         /* ニュースモード */
@@ -215,6 +226,7 @@
         .news-text-area {
             flex: 1;
             padding-right: 40px;
+            text-align: left;
         }
         .news-header {
             font-size: 1.5vw;
@@ -236,17 +248,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-        }
-
-        /* カーテンアニメーション用 */
-        .curtain-overlay {
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background-color: var(--curtain-color);
-            z-index: 9999;
         }
 
         /* 設定サイドバー */
@@ -280,31 +281,37 @@
         }
 
         .form-group {
-            margin-bottom: 25px;
+            margin-bottom: 20px;
         }
 
         .form-group label {
             display: block;
-            font-size: 14px;
+            font-size: 12px;
             color: var(--text-sub);
-            margin-bottom: 8px;
+            margin-bottom: 5px;
         }
 
         .form-group input[type="text"],
-        .form-group input[type="number"] {
+        .form-group input[type="number"],
+        .form-group input[type="range"] {
             width: 100%;
-            padding: 12px;
+            padding: 10px;
             background: rgba(0,0,0,0.5);
             border: 1px solid var(--glass-border);
             border-radius: 8px;
             color: #fff;
-            font-size: 16px;
+            font-size: 14px;
             outline: none;
         }
         
+        .form-group input[type="range"] {
+            padding: 0;
+            height: 4px;
+        }
+
         .form-group input[type="color"] {
             width: 100%;
-            height: 40px;
+            height: 35px;
             border: none;
             background: none;
             cursor: pointer;
@@ -313,7 +320,7 @@
         .form-group input[type="file"] {
             width: 100%;
             color: var(--text-sub);
-            font-size: 14px;
+            font-size: 12px;
         }
 
         .save-btn {
@@ -325,11 +332,7 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            margin-top: 20px;
-            transition: background 0.2s;
-        }
-        .save-btn:hover {
-            background: rgba(255,255,255,0.8);
+            margin-top: 10px;
         }
 
         #swipe-zone {
@@ -348,36 +351,41 @@
     <div id="swipe-zone"></div>
 
     <div class="container">
-        <div id="side-clock-container">
-            <div id="side-clock-content">
-                <div class="side-time" id="side-time-display">00:00</div>
-                <div class="side-sec" id="side-sec-display">00</div>
-            </div>
+        
+        <div id="side-ui-panel" class="glass-panel">
+            <div class="side-time en-font" id="side-time-display">00:00</div>
+            <div class="side-sec en-font" id="side-sec-display">00</div>
+            <div class="curtain-overlay"></div>
         </div>
 
-        <div id="main-content">
-            <div id="mode-time" class="mode-panel">
-                <div class="huge-clock-time" id="main-time-display">00:00:00</div>
-                <div class="huge-clock-date" id="main-date-display">1月1日(月)</div>
+        <div id="main-ui-panel" class="glass-panel">
+            
+            <div id="mode-time" class="mode-content">
+                <div class="huge-clock-time en-font" id="main-time-display">00:00:00</div>
+                <div class="huge-clock-date en-font" id="main-date-display">1月1日(月)</div>
             </div>
 
-            <div id="mode-weather" class="mode-panel">
+            <div id="mode-weather" class="mode-content">
                 <div id="weather-today" class="weather-sub-panel">
-                    <div class="weather-title">今日の天気</div>
+                    <div class="weather-location" id="location-name-today">--</div>
+                    <div class="weather-title">TODAY'S WEATHER</div>
                     <div class="weather-desc" id="wt-desc">取得中...</div>
-                    <div class="weather-main-temp" id="wt-temp">--°C</div>
+                    <div class="weather-main-temp en-font" id="wt-temp">--°C</div>
                     <div class="weather-minmax">
-                        最高: <span class="temp-max en-font" id="wt-max">--°C</span> / 最低: <span class="temp-min en-font" id="wt-min">--°C</span>
+                        <span class="temp-max en-font" id="wt-max">--°C</span> / <span class="temp-min en-font" id="wt-min">--°C</span>
                     </div>
+                    <div class="weather-alerts" id="wt-alerts">ALERTS: NONE</div>
                 </div>
+                
                 <div id="weather-forecast" class="weather-sub-panel">
-                    <div class="weather-title">明日からの天気</div>
+                    <div class="weather-location" id="location-name-forecast">--</div>
+                    <div class="weather-title">5-DAY FORECAST</div>
                     <div class="forecast-container" id="forecast-box">
                         </div>
                 </div>
             </div>
 
-            <div id="mode-news" class="mode-panel">
+            <div id="mode-news" class="mode-content">
                 <div class="news-container">
                     <div class="news-text-area">
                         <div class="news-header">LATEST NEWS</div>
@@ -388,6 +396,8 @@
                     </div>
                 </div>
             </div>
+
+            <div class="curtain-overlay"></div>
         </div>
     </div>
 
@@ -395,8 +405,20 @@
         <div class="settings-title">設定</div>
         
         <div class="form-group">
-            <label>切り替え頻度 (秒)</label>
-            <input type="number" id="input-interval" min="10" placeholder="例: 60">
+            <label>時計の表示秒数 (デフォルト 60)</label>
+            <input type="number" id="input-time-sec" min="10">
+        </div>
+        <div class="form-group">
+            <label>天気の表示秒数 (デフォルト 60)</label>
+            <input type="number" id="input-weather-sec" min="10">
+        </div>
+        <div class="form-group">
+            <label>ニュースの表示秒数 (デフォルト 60)</label>
+            <input type="number" id="input-news-sec" min="10">
+        </div>
+        <div class="form-group">
+            <label>UIのぼかし具合</label>
+            <input type="range" id="input-blur" min="0" max="50">
         </div>
         <div class="form-group">
             <label>カーテンの色</label>
@@ -411,15 +433,15 @@
             <input type="number" step="0.000001" id="input-lon">
         </div>
         <div class="form-group">
-            <label>Yahooニュース RSS URL</label>
+            <label>Yahoo RSS URL</label>
             <input type="text" id="input-rss">
         </div>
         <div class="form-group">
-            <label>日本語フォント (通常テキスト)</label>
+            <label>日本語フォント</label>
             <input type="file" id="input-font-ja" accept=".ttf,.otf,.woff,.woff2">
         </div>
         <div class="form-group">
-            <label>英語・数字フォント (時計・温度など)</label>
+            <label>英語・数字フォント</label>
             <input type="file" id="input-font-en" accept=".ttf,.otf,.woff,.woff2">
         </div>
         <div class="form-group">
@@ -433,7 +455,10 @@
     <script>
         // --- 設定管理 ---
         const DEFAULT_SETTINGS = {
-            interval: 60,
+            timeSec: 60,
+            weatherSec: 60,
+            newsSec: 60,
+            blurAmount: 20,
             curtainColor: '#ff8c00',
             lat: 35.6895, 
             lon: 139.6917,
@@ -452,19 +477,26 @@
                 currentSettings = { ...DEFAULT_SETTINGS, ...saved };
             }
             
-            document.getElementById('input-interval').value = currentSettings.interval;
+            document.getElementById('input-time-sec').value = currentSettings.timeSec;
+            document.getElementById('input-weather-sec').value = currentSettings.weatherSec;
+            document.getElementById('input-news-sec').value = currentSettings.newsSec;
+            document.getElementById('input-blur').value = currentSettings.blurAmount;
             document.getElementById('input-curtain').value = currentSettings.curtainColor;
             document.getElementById('input-lat').value = currentSettings.lat;
             document.getElementById('input-lon').value = currentSettings.lon;
             document.getElementById('input-rss').value = currentSettings.rssUrl;
 
             applyCustomStyles();
+            fetchLocationName();
             fetchWeather();
             fetchNews();
         }
 
         async function saveSettings() {
-            currentSettings.interval = parseInt(document.getElementById('input-interval').value) || DEFAULT_SETTINGS.interval;
+            currentSettings.timeSec = parseInt(document.getElementById('input-time-sec').value) || DEFAULT_SETTINGS.timeSec;
+            currentSettings.weatherSec = parseInt(document.getElementById('input-weather-sec').value) || DEFAULT_SETTINGS.weatherSec;
+            currentSettings.newsSec = parseInt(document.getElementById('input-news-sec').value) || DEFAULT_SETTINGS.newsSec;
+            currentSettings.blurAmount = parseInt(document.getElementById('input-blur').value) || 0;
             currentSettings.curtainColor = document.getElementById('input-curtain').value || DEFAULT_SETTINGS.curtainColor;
             currentSettings.lat = parseFloat(document.getElementById('input-lat').value) || DEFAULT_SETTINGS.lat;
             currentSettings.lon = parseFloat(document.getElementById('input-lon').value) || DEFAULT_SETTINGS.lon;
@@ -482,7 +514,7 @@
             await localforage.setItem('smartDisplaySettings', currentSettings);
             applyCustomStyles();
             
-            // すぐに反映させるための再フェッチ
+            fetchLocationName();
             fetchWeather();
             fetchNews();
             globalSeconds = 0; // サイクルをリセット
@@ -502,6 +534,7 @@
             let styleContent = '';
             
             document.documentElement.style.setProperty('--curtain-color', currentSettings.curtainColor);
+            document.documentElement.style.setProperty('--blur-amount', currentSettings.blurAmount + 'px');
 
             if (currentSettings.bgData) {
                 document.body.style.backgroundImage = `url(${currentSettings.bgData})`;
@@ -520,70 +553,35 @@
             document.getElementById('dynamic-styles').textContent = styleContent;
         }
 
-        // --- カーテンアニメーション ---
-        function playCurtain(containerId, onCovered) {
-            const container = document.getElementById(containerId);
-            let curtain = container.querySelector('.curtain-overlay');
-            if (!curtain) {
-                curtain = document.createElement('div');
-                curtain.className = 'curtain-overlay';
-                container.appendChild(curtain);
-            }
-            
-            // 初期状態へリセット
-            curtain.style.transition = 'none';
-            curtain.style.left = '-100%';
-            
-            // Reflow強制
-            void curtain.offsetWidth;
-            
-            // スライドイン
-            curtain.style.transition = 'left 0.4s cubic-bezier(0.65, 0, 0.35, 1)';
-            curtain.style.left = '0';
-            
-            setTimeout(() => {
-                // 完全に覆った瞬間にコールバックを実行してDOM書き換え
-                if(onCovered) onCovered();
-                
-                // スライドアウト
-                curtain.style.left = '100%';
-                
-                setTimeout(() => {
-                    // 次のアニメーションのために待機位置へ戻す
-                    curtain.style.transition = 'none';
-                    curtain.style.left = '-100%';
-                }, 400);
-            }, 400);
-        }
-
-        // --- スワイプ処理 ---
-        let touchstartX = 0;
-        document.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; });
-        document.addEventListener('touchend', e => {
-            let touchendX = e.changedTouches[0].screenX;
-            if (touchendX - touchstartX > 50 && touchstartX < 50) {
-                document.getElementById('settings-sidebar').classList.add('open');
-            }
-            if (touchstartX - touchendX > 50) {
-                document.getElementById('settings-sidebar').classList.remove('open');
-            }
-        });
-
         // --- データ取得 ---
         let weatherData = null;
         let newsData = [];
 
+        async function fetchLocationName() {
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentSettings.lat}&lon=${currentSettings.lon}&zoom=10&accept-language=en`);
+                const data = await res.json();
+                const city = data.address.city || data.address.town || data.address.village || data.address.county || 'UNKNOWN LOCATION';
+                document.getElementById('location-name-today').textContent = city.toUpperCase();
+                document.getElementById('location-name-forecast').textContent = city.toUpperCase();
+            } catch (e) {
+                console.error("Location fetch error", e);
+                document.getElementById('location-name-today').textContent = 'LOCATION NOT FOUND';
+                document.getElementById('location-name-forecast').textContent = 'LOCATION NOT FOUND';
+            }
+        }
+
         function getWeatherDisplay(code) {
-            if (code === 0) return { icon: '☀️', text: '快晴' };
-            if (code === 1 || code === 2 || code === 3) return { icon: '⛅', text: '晴れ / 曇り' };
-            if (code >= 45 && code <= 48) return { icon: '🌫️', text: '霧' };
-            if (code >= 51 && code <= 55) return { icon: '🌧️', text: '霧雨' };
-            if (code >= 61 && code <= 65) return { icon: '☔', text: '雨' };
-            if (code >= 71 && code <= 77) return { icon: '❄️', text: '雪' };
-            if (code >= 80 && code <= 82) return { icon: '🌦️', text: 'にわか雨' };
-            if (code >= 85 && code <= 86) return { icon: '🌨️', text: 'にわか雪' };
-            if (code >= 95 && code <= 99) return { icon: '⛈️', text: '雷雨' };
-            return { icon: '❓', text: '不明' };
+            if (code === 0) return { icon: '☀️', text: 'Sunny' };
+            if (code === 1 || code === 2 || code === 3) return { icon: '⛅', text: 'Cloudy' };
+            if (code >= 45 && code <= 48) return { icon: '🌫️', text: 'Fog' };
+            if (code >= 51 && code <= 55) return { icon: '🌧️', text: 'Drizzle' };
+            if (code >= 61 && code <= 65) return { icon: '☔', text: 'Rain' };
+            if (code >= 71 && code <= 77) return { icon: '❄️', text: 'Snow' };
+            if (code >= 80 && code <= 82) return { icon: '🌦️', text: 'Showers' };
+            if (code >= 85 && code <= 86) return { icon: '🌨️', text: 'Snow Showers' };
+            if (code >= 95 && code <= 99) return { icon: '⛈️', text: 'Thunderstorm' };
+            return { icon: '❓', text: 'Unknown' };
         }
 
         async function fetchWeather() {
@@ -597,7 +595,6 @@
         }
 
         async function fetchNews() {
-            // CORS回避とXMLパースのために AllOrigins を使用
             const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(currentSettings.rssUrl)}`;
             try {
                 const res = await fetch(proxyUrl);
@@ -614,108 +611,123 @@
                         newNewsData.push({ title, link });
                     }
                 }
-                if (newNewsData.length > 0) {
-                    newsData = newNewsData;
-                }
+                if (newNewsData.length > 0) newsData = newNewsData;
             } catch (e) {
                 console.error("News fetch error", e);
             }
         }
 
+        // --- カーテンアニメーション ---
+        function playCurtain(panelId, callback) {
+            const panel = document.getElementById(panelId);
+            let curtain = panel.querySelector('.curtain-overlay');
+            
+            curtain.style.transition = 'none';
+            curtain.style.transform = 'translateX(-100%)';
+            void curtain.offsetWidth; // Reflow
+            
+            curtain.style.transition = 'transform 0.4s cubic-bezier(0.65, 0, 0.35, 1)';
+            curtain.style.transform = 'translateX(0)';
+            
+            setTimeout(() => {
+                if(callback) callback();
+                curtain.style.transform = 'translateX(100%)';
+                
+                setTimeout(() => {
+                    curtain.style.transition = 'none';
+                    curtain.style.transform = 'translateX(-100%)';
+                }, 400);
+            }, 400);
+        }
+
         // --- 画面更新ロジック ---
         let globalSeconds = 0;
-        let currentMode = null; // 'time', 'weather', 'news'
-        let currentWeatherMode = null; // 'today', 'forecast'
+        let currentMode = null;
+        let currentWeatherMode = null;
         let currentNewsIndex = null;
         let isSideClockVisible = false;
 
         function updateDisplays() {
-            const now = new Date();
-            
-            // 時計のテキスト更新（毎秒）
-            const h = String(now.getHours()).padStart(2, '0');
-            const m = String(now.getMinutes()).padStart(2, '0');
-            const s = String(now.getSeconds()).padStart(2, '0');
-            const days = ['日', '月', '火', '水', '木', '金', '土'];
-            const dateStr = `${now.getMonth() + 1}月${now.getDate()}日(${days[now.getDay()]})`;
+            try {
+                const now = new Date();
+                
+                const h = String(now.getHours()).padStart(2, '0');
+                const m = String(now.getMinutes()).padStart(2, '0');
+                const s = String(now.getSeconds()).padStart(2, '0');
+                const days = ['日', '月', '火', '水', '木', '金', '土'];
+                const dateStr = `${now.getMonth() + 1}/${now.getDate()}(${days[now.getDay()]})`;
 
-            document.getElementById('side-time-display').textContent = `${h}:${m}`;
-            document.getElementById('side-sec-display').textContent = s;
-            document.getElementById('main-time-display').textContent = `${h}:${m}:${s}`;
-            document.getElementById('main-date-display').textContent = dateStr;
+                document.getElementById('side-time-display').textContent = `${h}:${m}`;
+                document.getElementById('side-sec-display').textContent = s;
+                document.getElementById('main-time-display').textContent = `${h}:${m}:${s}`;
+                document.getElementById('main-date-display').textContent = dateStr;
 
-            // 定期的なデータ取得
-            if (globalSeconds > 0 && globalSeconds % 60 === 0) fetchNews();
-            if (globalSeconds > 0 && globalSeconds % 3600 === 0) fetchWeather();
+                if (globalSeconds > 0 && globalSeconds % 60 === 0) fetchNews();
+                if (globalSeconds > 0 && globalSeconds % 3600 === 0) fetchWeather();
 
-            // 状態計算
-            const interval = currentSettings.interval;
-            const cycleSec = globalSeconds % (interval * 3);
-            
-            let nextMode = '';
-            let nextWeatherMode = '';
-            let nextNewsIndex = 0;
-            
-            if (cycleSec < interval) {
-                nextMode = 'time';
-            } else if (cycleSec < interval * 2) {
-                nextMode = 'weather';
-                nextWeatherMode = ((cycleSec - interval) < (interval / 2)) ? 'today' : 'forecast';
-            } else {
-                nextMode = 'news';
-                // ニュースはintervalの間に均等に切り替え（最大5件、デフォは20秒ごとに3件表示）
-                const newsDuration = interval / 3;
-                nextNewsIndex = Math.floor((cycleSec - interval * 2) / newsDuration);
-                // 記事数が少ない場合の安全策
-                if (newsData.length > 0) {
-                    nextNewsIndex = nextNewsIndex % newsData.length;
-                }
-            }
-
-            const nextSideClockVisible = (nextMode !== 'time');
-
-            // 変化チェック
-            const mainNeedsCurtain = (currentMode !== nextMode) || 
-                                     (nextMode === 'weather' && currentWeatherMode !== nextWeatherMode) || 
-                                     (nextMode === 'news' && currentNewsIndex !== nextNewsIndex);
-            
-            const sideNeedsCurtain = (isSideClockVisible !== nextSideClockVisible);
-
-            // メインコンテンツの更新
-            if (mainNeedsCurtain) {
-                playCurtain('main-content', () => {
-                    applyMainContentDOM(nextMode, nextWeatherMode, nextNewsIndex);
-                });
-                currentMode = nextMode;
-                currentWeatherMode = nextWeatherMode;
-                currentNewsIndex = nextNewsIndex;
-            } else if (currentMode === null) {
-                // 初回起動時
-                applyMainContentDOM(nextMode, nextWeatherMode, nextNewsIndex);
-                currentMode = nextMode;
-            }
-
-            // サイド時計の更新
-            if (sideNeedsCurtain) {
-                const sideContent = document.getElementById('side-clock-content');
-                if (nextSideClockVisible) {
-                    // 表示される時: カーテンで覆ってから中身を見せる
-                    playCurtain('side-clock-container', () => {
-                        sideContent.style.opacity = '1';
-                    });
+                const tSec = currentSettings.timeSec;
+                const wSec = currentSettings.weatherSec;
+                const nSec = currentSettings.newsSec;
+                const totalCycle = tSec + wSec + nSec;
+                
+                const cycleSec = globalSeconds % totalCycle;
+                
+                let nextMode = '';
+                let nextWeatherMode = '';
+                let nextNewsIndex = 0;
+                
+                if (cycleSec < tSec) {
+                    nextMode = 'time';
+                } else if (cycleSec < tSec + wSec) {
+                    nextMode = 'weather';
+                    const passedWSec = cycleSec - tSec;
+                    nextWeatherMode = (passedWSec < wSec / 2) ? 'today' : 'forecast';
                 } else {
-                    // 消える時: カーテンで覆ってから中身を隠す
-                    playCurtain('side-clock-container', () => {
-                        sideContent.style.opacity = '0';
-                    });
+                    nextMode = 'news';
+                    const passedNSec = cycleSec - (tSec + wSec);
+                    const durationPerNews = nSec / 3;
+                    nextNewsIndex = Math.floor(passedNSec / durationPerNews);
+                    if (newsData.length > 0) nextNewsIndex = nextNewsIndex % newsData.length;
+                    else nextNewsIndex = 0;
                 }
-                isSideClockVisible = nextSideClockVisible;
-            } else if (isSideClockVisible && sideContent && sideContent.style.opacity === '0') {
-                 // 初回表示用セーフティ
-                 sideContent.style.opacity = '1';
-            }
 
-            globalSeconds++;
+                const nextSideClockVisible = (nextMode !== 'time');
+
+                const mainNeedsCurtain = (currentMode !== nextMode) || 
+                                         (nextMode === 'weather' && currentWeatherMode !== nextWeatherMode) || 
+                                         (nextMode === 'news' && currentNewsIndex !== nextNewsIndex);
+                
+                const sideNeedsCurtain = (isSideClockVisible !== nextSideClockVisible);
+
+                // メインコンテンツ更新
+                if (mainNeedsCurtain) {
+                    playCurtain('main-ui-panel', () => {
+                        applyMainContentDOM(nextMode, nextWeatherMode, nextNewsIndex);
+                    });
+                    currentMode = nextMode;
+                    currentWeatherMode = nextWeatherMode;
+                    currentNewsIndex = nextNewsIndex;
+                } else if (currentMode === null) {
+                    applyMainContentDOM(nextMode, nextWeatherMode, nextNewsIndex);
+                    currentMode = nextMode;
+                }
+
+                // サイド時計更新
+                if (sideNeedsCurtain) {
+                    playCurtain('side-ui-panel', () => {
+                        document.getElementById('side-ui-panel').style.opacity = nextSideClockVisible ? '1' : '0';
+                    });
+                    isSideClockVisible = nextSideClockVisible;
+                } else if (isSideClockVisible && document.getElementById('side-ui-panel').style.opacity === '0') {
+                     document.getElementById('side-ui-panel').style.opacity = '1';
+                }
+
+            } catch (e) {
+                console.error("Loop error", e);
+            } finally {
+                // エラーが起きてもタイマーが止まらないよう必ずインクリメント
+                globalSeconds++;
+            }
         }
 
         function applyMainContentDOM(mode, weatherMode, newsIndex) {
@@ -789,6 +801,19 @@
                 }
             }
         }
+
+        // --- スワイプ処理 ---
+        let touchstartX = 0;
+        document.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; });
+        document.addEventListener('touchend', e => {
+            let touchendX = e.changedTouches[0].screenX;
+            if (touchendX - touchstartX > 50 && touchstartX < 50) {
+                document.getElementById('settings-sidebar').classList.add('open');
+            }
+            if (touchstartX - touchendX > 50) {
+                document.getElementById('settings-sidebar').classList.remove('open');
+            }
+        });
 
         // 初期化
         loadSettings().then(() => {
