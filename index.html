@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Display v6</title>
+    <title>Smart Display v7</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <style>
@@ -56,7 +56,7 @@
             align-items: center;
         }
 
-        /* UIの共通ガラススタイル (Standard) */
+        /* 共通ガラススタイル */
         .glass-panel {
             background: var(--glass-bg-standard);
             backdrop-filter: blur(var(--blur-amount));
@@ -66,7 +66,6 @@
             position: relative;
         }
 
-        /* Liquid Glass スタイル */
         .glass-panel.liquid {
             background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
             border: 1px solid rgba(255, 255, 255, 0.25);
@@ -88,35 +87,47 @@
             transform: translateX(-100%);
         }
 
-        /* サイド時計コンテナ */
+        /* 左上サイド時計 */
         #side-ui-container {
             position: absolute;
             top: 20px;
             left: 20px;
             z-index: 10;
             border-radius: 12px;
-            overflow: hidden; /* カーテンのはみ出しを防ぐ */
+            overflow: hidden;
         }
 
         #side-ui-panel {
             padding: 10px 20px;
             display: flex;
             align-items: baseline;
-            opacity: 0; /* 初期非表示。カーテンの裏で0と1が切り替わる */
+            opacity: 0; 
             border-radius: inherit;
         }
 
-        .side-time {
-            font-size: 2.5vw;
-            font-weight: 300;
-            letter-spacing: 1px;
+        .side-time { font-size: 2.5vw; font-weight: 300; letter-spacing: 1px; }
+        .side-sec { font-size: 1.2vw; color: var(--text-sub); margin-left: 5px; }
+
+        /* 右上タイマー */
+        #timer-ui-container {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            border-radius: 12px;
+            overflow: hidden;
         }
 
-        .side-sec {
-            font-size: 1.2vw;
-            color: var(--text-sub);
-            margin-left: 5px;
+        #timer-ui-panel {
+            padding: 10px 20px;
+            display: flex;
+            align-items: baseline;
+            opacity: 0; 
+            border-radius: inherit;
         }
+
+        .timer-label { font-size: 1vw; color: var(--text-sub); margin-right: 15px; letter-spacing: 2px; }
+        .timer-time { font-size: 2.5vw; font-weight: 300; letter-spacing: 1px; }
 
         /* メインパネル */
         #main-ui-panel {
@@ -141,224 +152,109 @@
             padding: 40px;
         }
 
-        .mode-content.active {
-            display: flex;
-        }
+        .mode-content.active { display: flex; }
 
         /* 時計モード */
-        .huge-clock-time {
-            font-size: 12vw;
-            font-weight: 200;
-            line-height: 1;
-            letter-spacing: 5px;
-        }
-        .huge-clock-date {
-            font-size: 3vw;
-            color: var(--text-sub);
-            margin-top: 20px;
-            letter-spacing: 2px;
-        }
+        .huge-clock-time { font-size: 12vw; font-weight: 200; line-height: 1; letter-spacing: 5px; }
+        .huge-clock-date { font-size: 3vw; color: var(--text-sub); margin-top: 20px; letter-spacing: 2px; text-transform: uppercase; }
 
         /* 天気モード */
         .weather-sub-panel {
-            display: none;
-            width: 100%;
-            height: 100%;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
+            display: none; width: 100%; height: 100%;
+            flex-direction: column; justify-content: center; align-items: center;
         }
-        .weather-sub-panel.active {
-            display: flex;
-        }
-        .weather-location {
-            font-size: 1.5vw;
-            color: var(--text-main);
-            letter-spacing: 2px;
-            margin-bottom: 5px;
-        }
-        .weather-title {
-            font-size: 1.5vw;
-            color: var(--text-sub);
-            margin-bottom: 20px;
-            letter-spacing: 3px;
-        }
-        .weather-main-temp {
-            font-size: 8vw;
-            font-weight: 300;
-            line-height: 1;
-        }
-        .weather-desc {
-            font-size: 3vw;
-            margin: 10px 0;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-        }
-        .weather-minmax {
-            font-size: 2vw;
-            color: var(--text-sub);
-        }
+        .weather-sub-panel.active { display: flex; }
+        .weather-location { font-size: 1.5vw; color: var(--text-main); letter-spacing: 2px; margin-bottom: 5px; text-transform: uppercase; }
+        .weather-title { font-size: 1.5vw; color: var(--text-sub); margin-bottom: 20px; letter-spacing: 3px; }
+        .weather-main-temp { font-size: 8vw; font-weight: 300; line-height: 1; }
+        .weather-desc { font-size: 3vw; margin: 10px 0; letter-spacing: 2px; text-transform: uppercase; }
+        .weather-minmax { font-size: 2vw; color: var(--text-sub); }
         .temp-max { color: #ff6b6b; font-weight: bold; }
         .temp-min { color: #4dabf7; font-weight: bold; }
 
-        .forecast-container {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            margin-top: 30px;
-        }
-        .forecast-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background: rgba(0,0,0,0.2);
-            padding: 20px;
-            border-radius: 16px;
-            width: 18%;
-        }
-        .forecast-date { font-size: 1.5vw; margin-bottom: 15px; }
+        .forecast-container { display: flex; justify-content: space-between; width: 100%; margin-top: 30px; }
+        .forecast-item { display: flex; flex-direction: column; align-items: center; background: rgba(0,0,0,0.2); padding: 20px; border-radius: 16px; width: 18%; }
+        .forecast-date { font-size: 1.5vw; margin-bottom: 15px; text-transform: uppercase; }
         .forecast-desc { font-size: 1.5vw; margin-bottom: 15px; line-height: 1.4; text-transform: uppercase; }
         .forecast-temp { font-size: 1.2vw; }
 
         /* ニュースモード */
-        .news-container {
-            display: flex;
-            width: 100%;
-            height: 100%;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .news-text-area {
-            flex: 1;
-            padding-right: 40px;
-            text-align: left;
-        }
-        .news-header {
-            font-size: 1.5vw;
-            color: var(--text-sub);
-            margin-bottom: 20px;
-            letter-spacing: 2px;
-        }
-        .news-title {
-            font-size: 3.5vw;
-            font-weight: 400;
-            line-height: 1.4;
-        }
-        .news-qr-area {
-            width: 300px;
-            height: 300px;
-            background: #fff;
-            padding: 20px;
-            border-radius: 16px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+        .news-container { display: flex; width: 100%; height: 100%; align-items: center; justify-content: space-between; }
+        .news-text-area { flex: 1; padding-right: 40px; text-align: left; }
+        .news-header { font-size: 1.5vw; color: var(--text-sub); margin-bottom: 20px; letter-spacing: 2px; }
+        .news-title { font-size: 3.5vw; font-weight: 400; line-height: 1.4; }
+        .news-qr-area { width: 300px; height: 300px; background: #fff; padding: 20px; border-radius: 16px; display: flex; justify-content: center; align-items: center; }
 
-        /* 設定サイドバー */
-        #settings-sidebar {
+        /* サイドバー共通 */
+        .sidebar {
             position: absolute;
             top: 0;
-            left: -400px;
             width: 400px;
             height: 100%;
             background: rgba(20, 20, 20, 0.95);
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
-            border-right: 1px solid var(--glass-border-standard);
             z-index: 10000;
-            transition: left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             padding: 40px 30px;
             display: flex;
             flex-direction: column;
             overflow-y: auto;
         }
 
-        #settings-sidebar.open {
+        #settings-sidebar {
             left: 0;
+            transform: translateX(-100%);
+            border-right: 1px solid var(--glass-border-standard);
         }
+        #settings-sidebar.open { transform: translateX(0); }
 
-        .settings-title {
-            font-size: 24px;
-            margin-bottom: 30px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid var(--glass-border-standard);
+        #timer-sidebar {
+            right: 0;
+            transform: translateX(100%);
+            border-left: 1px solid var(--glass-border-standard);
         }
+        #timer-sidebar.open { transform: translateX(0); }
 
-        .form-group {
-            margin-bottom: 20px;
-        }
+        .settings-title { font-size: 24px; margin-bottom: 30px; padding-bottom: 10px; border-bottom: 1px solid var(--glass-border-standard); }
 
-        .form-group label {
-            display: block;
-            font-size: 12px;
-            color: var(--text-sub);
-            margin-bottom: 5px;
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; font-size: 12px; color: var(--text-sub); margin-bottom: 5px; }
+        .form-group input[type="text"], .form-group input[type="number"], .form-group input[type="time"], .form-group select {
+            width: 100%; padding: 10px; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border-standard); border-radius: 8px; color: #fff; font-size: 14px; outline: none;
         }
+        .form-group input[type="range"] { width: 100%; padding: 0; height: 4px; }
+        .form-group input[type="color"] { width: 100%; height: 35px; border: none; background: none; cursor: pointer; }
+        .form-group input[type="file"] { width: 100%; color: var(--text-sub); font-size: 12px; }
 
-        .form-group input[type="text"],
-        .form-group input[type="number"],
-        .form-group select {
-            width: 100%;
-            padding: 10px;
-            background: rgba(0,0,0,0.5);
-            border: 1px solid var(--glass-border-standard);
-            border-radius: 8px;
-            color: #fff;
-            font-size: 14px;
-            outline: none;
-        }
+        .flex-row { display: flex; gap: 10px; }
+        .flex-row > div { flex: 1; }
 
-        .form-group input[type="range"] {
-            width: 100%;
-            padding: 0;
-            height: 4px;
+        .btn {
+            background: #fff; color: #000; border: none; padding: 15px; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; transition: background 0.2s; width: 100%;
         }
+        .btn:hover { background: rgba(255,255,255,0.8); }
+        .btn-danger { background: #ff4757; color: #fff; }
+        .btn-danger:hover { background: #ff6b81; }
+        .btn-secondary { background: transparent; color: #fff; border: 1px solid var(--glass-border-standard); }
+        .btn-secondary:hover { background: rgba(255,255,255,0.1); }
 
-        .form-group input[type="color"] {
-            width: 100%;
-            height: 35px;
-            border: none;
-            background: none;
-            cursor: pointer;
-        }
+        /* スワイプ検知用エリア */
+        .swipe-zone { position: absolute; top: 0; width: 30px; height: 100%; z-index: 50; }
+        #swipe-zone-left { left: 0; }
+        #swipe-zone-right { right: 0; }
 
-        .form-group input[type="file"] {
-            width: 100%;
-            color: var(--text-sub);
-            font-size: 12px;
-        }
+        /* 表示切り替え用ユーティリティ */
+        .hidden { display: none !important; }
 
-        .save-btn {
-            background: #fff;
-            color: #000;
-            border: none;
-            padding: 15px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: bold;
-            cursor: pointer;
-            margin-top: 10px;
-            transition: background 0.2s;
-        }
-        .save-btn:hover {
-            background: rgba(255,255,255,0.8);
-        }
-
-        #swipe-zone {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 30px;
-            height: 100%;
-            z-index: 50;
-        }
     </style>
 </head>
 <body>
 
     <style id="dynamic-styles"></style>
-    <div id="swipe-zone"></div>
+    
+    <div id="swipe-zone-left" class="swipe-zone"></div>
+    <div id="swipe-zone-right" class="swipe-zone"></div>
 
     <div class="container">
         
@@ -370,8 +266,15 @@
             <div class="curtain-overlay"></div>
         </div>
 
+        <div id="timer-ui-container">
+            <div id="timer-ui-panel" class="glass-panel">
+                <div class="timer-label en-font">TIMER</div>
+                <div class="timer-time en-font" id="timer-display">00:00:00</div>
+            </div>
+            <div class="curtain-overlay"></div>
+        </div>
+
         <div id="main-ui-panel" class="glass-panel">
-            
             <div id="mode-time" class="mode-content">
                 <div class="huge-clock-time en-font" id="main-time-display">00:00:00</div>
                 <div class="huge-clock-date en-font" id="main-date-display">MON, JAN 1</div>
@@ -391,8 +294,7 @@
                 <div id="weather-forecast" class="weather-sub-panel">
                     <div class="weather-location en-font" id="location-name-forecast">--</div>
                     <div class="weather-title en-font">5-DAY FORECAST</div>
-                    <div class="forecast-container" id="forecast-box">
-                        </div>
+                    <div class="forecast-container" id="forecast-box"></div>
                 </div>
             </div>
 
@@ -412,7 +314,7 @@
         </div>
     </div>
 
-    <div id="settings-sidebar">
+    <div id="settings-sidebar" class="sidebar">
         <div class="settings-title">設定</div>
         
         <div class="form-group">
@@ -442,13 +344,15 @@
             <label>ニュースの表示秒数 (デフォルト 60)</label>
             <input type="number" id="input-news-sec" min="10">
         </div>
-        <div class="form-group">
-            <label>緯度 (Latitude)</label>
-            <input type="number" step="0.000001" id="input-lat">
-        </div>
-        <div class="form-group">
-            <label>経度 (Longitude)</label>
-            <input type="number" step="0.000001" id="input-lon">
+        <div class="form-group flex-row">
+            <div>
+                <label>緯度 (Lat)</label>
+                <input type="number" step="0.000001" id="input-lat">
+            </div>
+            <div>
+                <label>経度 (Lon)</label>
+                <input type="number" step="0.000001" id="input-lon">
+            </div>
         </div>
         <div class="form-group">
             <label>Yahoo RSS URL</label>
@@ -467,23 +371,52 @@
             <input type="file" id="input-bg" accept="image/*">
         </div>
         
-        <button class="save-btn" onclick="saveSettings()">保存して適用</button>
+        <button class="btn" onclick="saveSettings()">保存して適用</button>
+    </div>
+
+    <div id="timer-sidebar" class="sidebar">
+        <div class="settings-title">タイマー設定</div>
+        
+        <div class="form-group">
+            <label>モード</label>
+            <select id="timer-mode-select" onchange="switchTimerMode()">
+                <option value="duration">時間指定 (Countdown)</option>
+                <option value="target">時刻指定 (Target Time)</option>
+            </select>
+        </div>
+
+        <div id="timer-duration-inputs" class="form-group flex-row">
+            <div>
+                <label>時間</label>
+                <input type="number" id="timer-hours" min="0" max="99" value="0">
+            </div>
+            <div>
+                <label>分</label>
+                <input type="number" id="timer-minutes" min="0" max="59" value="5">
+            </div>
+        </div>
+
+        <div id="timer-target-inputs" class="form-group hidden">
+            <label>終了時刻</label>
+            <input type="time" id="timer-target-time">
+        </div>
+        
+        <button class="btn" id="btn-timer-start" onclick="startTimer()">スタート</button>
+        <div class="flex-row" style="margin-top:10px;">
+            <button class="btn btn-secondary" id="btn-timer-stop" onclick="stopTimer()" disabled>ストップ</button>
+            <button class="btn btn-danger" id="btn-timer-reset" onclick="resetTimer()" disabled>リセット</button>
+        </div>
     </div>
 
     <script>
+        // --- 設定管理 ---
         const DEFAULT_SETTINGS = {
             glassStyle: 'standard',
-            timeSec: 60,
-            weatherSec: 60,
-            newsSec: 60,
-            blurAmount: 20,
-            curtainColor: '#ff8c00',
-            lat: 35.6895, 
-            lon: 139.6917,
+            timeSec: 60, weatherSec: 60, newsSec: 60,
+            blurAmount: 20, curtainColor: '#ff8c00',
+            lat: 35.6895, lon: 139.6917,
             rssUrl: 'https://news.yahoo.co.jp/rss/topics/top-picks.xml',
-            fontDataJa: null, 
-            fontDataEn: null, 
-            bgData: null
+            fontDataJa: null, fontDataEn: null, bgData: null
         };
 
         let currentSettings = { ...DEFAULT_SETTINGS };
@@ -491,9 +424,7 @@
 
         async function loadSettings() {
             const saved = await localforage.getItem('smartDisplaySettings');
-            if (saved) {
-                currentSettings = { ...DEFAULT_SETTINGS, ...saved };
-            }
+            if (saved) currentSettings = { ...DEFAULT_SETTINGS, ...saved };
             
             document.getElementById('input-glass-style').value = currentSettings.glassStyle || 'standard';
             document.getElementById('input-time-sec').value = currentSettings.timeSec;
@@ -552,35 +483,152 @@
 
         function applyCustomStyles() {
             let styleContent = '';
-            
             document.documentElement.style.setProperty('--curtain-color', currentSettings.curtainColor);
             document.documentElement.style.setProperty('--blur-amount', currentSettings.blurAmount + 'px');
-
-            if (currentSettings.bgData) {
-                document.body.style.backgroundImage = `url(${currentSettings.bgData})`;
-            }
-
+            if (currentSettings.bgData) document.body.style.backgroundImage = `url(${currentSettings.bgData})`;
             if (currentSettings.fontDataJa) {
                 styleContent += `@font-face { font-family: 'CustomUserFontJa'; src: url(${currentSettings.fontDataJa}); }`;
                 document.documentElement.style.setProperty('--font-ja', "'CustomUserFontJa', sans-serif");
             }
-
             if (currentSettings.fontDataEn) {
                 styleContent += `@font-face { font-family: 'CustomUserFontEn'; src: url(${currentSettings.fontDataEn}); }`;
                 document.documentElement.style.setProperty('--font-en', "'CustomUserFontEn', sans-serif");
             }
-
             document.getElementById('dynamic-styles').textContent = styleContent;
 
             const panels = document.querySelectorAll('.glass-panel');
             panels.forEach(p => {
-                if (currentSettings.glassStyle === 'liquid') {
-                    p.classList.add('liquid');
-                } else {
-                    p.classList.remove('liquid');
-                }
+                if (currentSettings.glassStyle === 'liquid') p.classList.add('liquid');
+                else p.classList.remove('liquid');
             });
         }
+
+        // --- タイマー管理 ---
+        let timerEndTime = null;
+        let isTimerRunning = false;
+        let isTimerVisible = false;
+        let timerRemainingMs = 0;
+
+        function switchTimerMode() {
+            const mode = document.getElementById('timer-mode-select').value;
+            if (mode === 'duration') {
+                document.getElementById('timer-duration-inputs').classList.remove('hidden');
+                document.getElementById('timer-target-inputs').classList.add('hidden');
+            } else {
+                document.getElementById('timer-duration-inputs').classList.add('hidden');
+                document.getElementById('timer-target-inputs').classList.remove('hidden');
+            }
+        }
+
+        function startTimer() {
+            if (isTimerRunning) return;
+
+            const mode = document.getElementById('timer-mode-select').value;
+            let targetTimeMs = 0;
+
+            if (mode === 'duration') {
+                const hrs = parseInt(document.getElementById('timer-hours').value) || 0;
+                const mins = parseInt(document.getElementById('timer-minutes').value) || 0;
+                
+                // ストップ状態からの再開か、新規スタートかを判定
+                if (timerRemainingMs > 0 && !timerEndTime) {
+                    targetTimeMs = Date.now() + timerRemainingMs;
+                } else {
+                    const totalMs = (hrs * 60 * 60 + mins * 60) * 1000;
+                    if (totalMs <= 0) return;
+                    targetTimeMs = Date.now() + totalMs;
+                }
+            } else {
+                const targetStr = document.getElementById('timer-target-time').value;
+                if (!targetStr) return;
+                
+                const now = new Date();
+                const [targetHrs, targetMins] = targetStr.split(':').map(Number);
+                const targetDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), targetHrs, targetMins, 0);
+                
+                if (targetDate.getTime() <= now.getTime()) {
+                    // もし指定時刻が現在より前なら、翌日の時刻とみなす
+                    targetDate.setDate(targetDate.getDate() + 1);
+                }
+                targetTimeMs = targetDate.getTime();
+            }
+
+            timerEndTime = targetTimeMs;
+            isTimerRunning = true;
+            
+            document.getElementById('btn-timer-start').disabled = true;
+            document.getElementById('btn-timer-stop').disabled = false;
+            document.getElementById('btn-timer-reset').disabled = false;
+            document.getElementById('timer-sidebar').classList.remove('open');
+        }
+
+        function stopTimer() {
+            if (!isTimerRunning) return;
+            isTimerRunning = false;
+            if (timerEndTime) {
+                timerRemainingMs = timerEndTime - Date.now();
+                if(timerRemainingMs < 0) timerRemainingMs = 0;
+            }
+            timerEndTime = null;
+            document.getElementById('btn-timer-start').disabled = false;
+            document.getElementById('btn-timer-stop').disabled = true;
+        }
+
+        function resetTimer() {
+            isTimerRunning = false;
+            timerEndTime = null;
+            timerRemainingMs = 0;
+            document.getElementById('btn-timer-start').disabled = false;
+            document.getElementById('btn-timer-stop').disabled = true;
+            document.getElementById('btn-timer-reset').disabled = true;
+        }
+
+        // タイマーのUI表示更新処理 (毎秒呼ばれる)
+        function processTimerDisplay() {
+            let remaining = 0;
+            let displayStr = "00:00:00";
+            
+            if (isTimerRunning && timerEndTime) {
+                remaining = timerEndTime - Date.now();
+            } else if (!isTimerRunning && timerRemainingMs > 0) {
+                remaining = timerRemainingMs;
+            }
+
+            if (remaining > 0) {
+                const totalSeconds = Math.ceil(remaining / 1000);
+                const h = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+                const m = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+                const s = String(totalSeconds % 60).padStart(2, '0');
+                displayStr = `${h}:${m}:${s}`;
+                
+                // タイマー表示が必要だが表示されていない場合
+                if (!isTimerVisible) {
+                    playCurtain('timer-ui-container', () => {
+                        document.getElementById('timer-ui-panel').style.opacity = '1';
+                    });
+                    isTimerVisible = true;
+                }
+                document.getElementById('timer-display').textContent = displayStr;
+            } else {
+                // 0になった or リセットされた
+                document.getElementById('timer-display').textContent = "00:00:00";
+                if (isTimerRunning) {
+                    resetTimer(); // 0になったら自動停止
+                }
+                // 表示されていて消す必要がある場合
+                if (isTimerVisible) {
+                    playCurtain('timer-ui-container', () => {
+                        document.getElementById('timer-ui-panel').style.opacity = '0';
+                    });
+                    isTimerVisible = false;
+                }
+            }
+        }
+
+
+        // --- データ取得 ---
+        let weatherData = null;
+        let newsData = [];
 
         async function fetchLocationName() {
             try {
@@ -629,39 +677,30 @@
                 for (let i = 0; i < items.length && newNewsData.length < 5; i++) {
                     const title = items[i].querySelector('title')?.textContent;
                     const link = items[i].querySelector('link')?.textContent;
-                    if (title && link) {
-                        newNewsData.push({ title, link });
-                    }
+                    if (title && link) newNewsData.push({ title, link });
                 }
                 if (newNewsData.length > 0) newsData = newNewsData;
             } catch (e) {}
         }
 
-        // --- カーテンアニメーション処理 (改善版) ---
+        // --- カーテンアニメーション処理 ---
         function playCurtain(containerId, callback) {
             const container = document.getElementById(containerId);
             let curtain = container.querySelector('.curtain-overlay');
             
-            // 左外で待機状態にリセット
             curtain.style.transition = 'none';
             curtain.style.transform = 'translateX(-100%)';
-            void curtain.offsetWidth; // Reflowを強制して即時反映
+            void curtain.offsetWidth; 
             
-            // Phase 1: 左から右へスライドインして画面を覆う
             curtain.style.transition = 'transform 0.4s ease-in-out';
             curtain.style.transform = 'translateX(0%)';
             
             setTimeout(() => {
-                // 完全に覆い隠された瞬間にコールバック（DOM書き換え等）を実行
                 if(callback) callback();
                 
-                // 50msだけ画面を覆ったまま保持し、DOMの切り替えチラつきを完全に防ぐ
                 setTimeout(() => {
-                    // Phase 2: さらに右へスライドアウトして抜けていく
                     curtain.style.transform = 'translateX(100%)';
-                    
                     setTimeout(() => {
-                        // アニメーション完了後、見えない状態で元の位置に戻す
                         curtain.style.transition = 'none';
                         curtain.style.transform = 'translateX(-100%)';
                     }, 400); 
@@ -678,12 +717,10 @@
         function updateDisplays() {
             try {
                 const now = new Date();
-                
                 const h = String(now.getHours()).padStart(2, '0');
                 const m = String(now.getMinutes()).padStart(2, '0');
                 const s = String(now.getSeconds()).padStart(2, '0');
                 
-                // 英語の日付フォーマット (例: MON, JAN 1)
                 const daysEn = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
                 const monthsEn = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
                 const dateStr = `${daysEn[now.getDay()]}, ${monthsEn[now.getMonth()]} ${now.getDate()}`;
@@ -693,6 +730,9 @@
                 document.getElementById('main-time-display').textContent = `${h}:${m}:${s}`;
                 document.getElementById('main-date-display').textContent = dateStr;
 
+                // タイマーの処理
+                processTimerDisplay();
+
                 if (globalSeconds > 0 && globalSeconds % 60 === 0) fetchNews();
                 if (globalSeconds > 0 && globalSeconds % 3600 === 0) fetchWeather();
 
@@ -700,7 +740,6 @@
                 const wSec = currentSettings.weatherSec;
                 const nSec = currentSettings.newsSec;
                 const totalCycle = tSec + wSec + nSec;
-                
                 const cycleSec = globalSeconds % totalCycle;
                 
                 let nextMode = '';
@@ -711,55 +750,38 @@
                     nextMode = 'time';
                 } else if (cycleSec < tSec + wSec) {
                     nextMode = 'weather';
-                    const passedWSec = cycleSec - tSec;
-                    nextWeatherMode = (passedWSec < wSec / 2) ? 'today' : 'forecast';
+                    nextWeatherMode = ((cycleSec - tSec) < wSec / 2) ? 'today' : 'forecast';
                 } else {
                     nextMode = 'news';
                     const passedNSec = cycleSec - (tSec + wSec);
-                    const durationPerNews = nSec / 3;
-                    nextNewsIndex = Math.floor(passedNSec / durationPerNews);
+                    nextNewsIndex = Math.floor(passedNSec / (nSec / 3));
                     if (newsData.length > 0) nextNewsIndex = nextNewsIndex % newsData.length;
                     else nextNewsIndex = 0;
                 }
 
                 const nextSideClockVisible = (nextMode !== 'time');
 
-                const mainNeedsCurtain = (currentMode !== nextMode) || 
-                                         (nextMode === 'weather' && currentWeatherMode !== nextWeatherMode) || 
-                                         (nextMode === 'news' && currentNewsIndex !== nextNewsIndex);
-                
+                const mainNeedsCurtain = (currentMode !== nextMode) || (nextMode === 'weather' && currentWeatherMode !== nextWeatherMode) || (nextMode === 'news' && currentNewsIndex !== nextNewsIndex);
                 const sideNeedsCurtain = (isSideClockVisible !== nextSideClockVisible);
 
-                // メインコンテンツ更新
                 if (mainNeedsCurtain) {
-                    playCurtain('main-ui-panel', () => {
-                        applyMainContentDOM(nextMode, nextWeatherMode, nextNewsIndex);
-                    });
-                    currentMode = nextMode;
-                    currentWeatherMode = nextWeatherMode;
-                    currentNewsIndex = nextNewsIndex;
+                    playCurtain('main-ui-panel', () => { applyMainContentDOM(nextMode, nextWeatherMode, nextNewsIndex); });
+                    currentMode = nextMode; currentWeatherMode = nextWeatherMode; currentNewsIndex = nextNewsIndex;
                 } else if (currentMode === null) {
                     applyMainContentDOM(nextMode, nextWeatherMode, nextNewsIndex);
                     currentMode = nextMode;
                 }
 
-                // サイド時計更新（メインと同じカーテンアニメーションを使用）
                 if (sideNeedsCurtain) {
                     playCurtain('side-ui-container', () => {
-                        const sidePanel = document.getElementById('side-ui-panel');
-                        sidePanel.style.opacity = nextSideClockVisible ? '1' : '0';
+                        document.getElementById('side-ui-panel').style.opacity = nextSideClockVisible ? '1' : '0';
                     });
                     isSideClockVisible = nextSideClockVisible;
                 } else if (isSideClockVisible && document.getElementById('side-ui-panel').style.opacity === '0') {
-                    // 初回ロード時のセーフティ
                     document.getElementById('side-ui-panel').style.opacity = '1';
                 }
 
-            } catch (e) {
-                console.error(e);
-            } finally {
-                globalSeconds++;
-            }
+            } catch (e) { console.error(e); } finally { globalSeconds++; }
         }
 
         function applyMainContentDOM(mode, weatherMode, newsIndex) {
@@ -767,40 +789,30 @@
             const pWeather = document.getElementById('mode-weather');
             const pNews = document.getElementById('mode-news');
             
-            pTime.classList.remove('active');
-            pWeather.classList.remove('active');
-            pNews.classList.remove('active');
+            pTime.classList.remove('active'); pWeather.classList.remove('active'); pNews.classList.remove('active');
             
             if (mode === 'time') pTime.classList.add('active');
-            
             if (mode === 'weather') {
                 pWeather.classList.add('active');
                 const pToday = document.getElementById('weather-today');
                 const pForecast = document.getElementById('weather-forecast');
                 
                 if (weatherMode === 'today') {
-                    pToday.classList.add('active');
-                    pForecast.classList.remove('active');
-                    
+                    pToday.classList.add('active'); pForecast.classList.remove('active');
                     if (weatherData && weatherData.current_weather) {
                         const cw = weatherData.current_weather;
                         const daily = weatherData.daily;
-                        const wText = getWeatherDisplay(cw.weathercode);
-                        
-                        document.getElementById('wt-desc').textContent = wText;
+                        document.getElementById('wt-desc').textContent = getWeatherDisplay(cw.weathercode);
                         document.getElementById('wt-temp').textContent = `${cw.temperature}°C`;
                         document.getElementById('wt-max').textContent = `${daily.temperature_2m_max[0]}°C`;
                         document.getElementById('wt-min').textContent = `${daily.temperature_2m_min[0]}°C`;
                     }
                 } else {
-                    pToday.classList.remove('active');
-                    pForecast.classList.add('active');
-                    
+                    pToday.classList.remove('active'); pForecast.classList.add('active');
                     if (weatherData && weatherData.daily) {
                         const daily = weatherData.daily;
                         const box = document.getElementById('forecast-box');
                         box.innerHTML = ''; 
-                        
                         for (let i = 1; i <= 5; i++) {
                             const dateObj = new Date(daily.time[i]);
                             const dStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
@@ -812,16 +824,13 @@
                                 <div class="forecast-item">
                                     <div class="forecast-date en-font">${dStr}</div>
                                     <div class="forecast-desc en-font">${wText}</div>
-                                    <div class="forecast-temp en-font">
-                                        <span class="temp-max">${maxT}°</span> / <span class="temp-min">${minT}°</span>
-                                    </div>
+                                    <div class="forecast-temp en-font"><span class="temp-max">${maxT}°</span> / <span class="temp-min">${minT}°</span></div>
                                 </div>
                             `);
                         }
                     }
                 }
             }
-
             if (mode === 'news') {
                 pNews.classList.add('active');
                 if (newsData.length > 0 && newsData[newsIndex]) {
@@ -834,15 +843,38 @@
             }
         }
 
+        // --- スワイプ処理 ---
         let touchstartX = 0;
-        document.addEventListener('touchstart', e => { touchstartX = e.changedTouches[0].screenX; });
+        let swipeTarget = null;
+
+        document.addEventListener('touchstart', e => { 
+            touchstartX = e.changedTouches[0].screenX; 
+            // 画面左端(50px以内)か右端(50px以内)か判定
+            if (touchstartX < 50) swipeTarget = 'left';
+            else if (touchstartX > window.innerWidth - 50) swipeTarget = 'right';
+            else swipeTarget = null;
+        });
+
         document.addEventListener('touchend', e => {
             let touchendX = e.changedTouches[0].screenX;
-            if (touchendX - touchstartX > 50 && touchstartX < 50) {
+            let diff = touchendX - touchstartX;
+            
+            // 左から右へスワイプ (設定開く)
+            if (swipeTarget === 'left' && diff > 50) {
                 document.getElementById('settings-sidebar').classList.add('open');
             }
-            if (touchstartX - touchendX > 50) {
+            // 右から左へスワイプ (設定閉じる)
+            if (diff < -50 && document.getElementById('settings-sidebar').classList.contains('open')) {
                 document.getElementById('settings-sidebar').classList.remove('open');
+            }
+
+            // 右から左へスワイプ (タイマー開く)
+            if (swipeTarget === 'right' && diff < -50) {
+                document.getElementById('timer-sidebar').classList.add('open');
+            }
+            // 左から右へスワイプ (タイマー閉じる)
+            if (diff > 50 && document.getElementById('timer-sidebar').classList.contains('open')) {
+                document.getElementById('timer-sidebar').classList.remove('open');
             }
         });
 
