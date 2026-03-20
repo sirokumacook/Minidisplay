@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Smart Display v4</title>
+    <title>Smart Display v5</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
     <style>
@@ -11,14 +11,14 @@
             --bg-color: #121212;
             --text-main: rgba(255, 255, 255, 0.95);
             --text-sub: rgba(255, 255, 255, 0.6);
-            --glass-bg: rgba(30, 30, 30, 0.4);
-            --glass-border: rgba(255, 255, 255, 0.1);
+            --glass-bg-standard: rgba(30, 30, 30, 0.4);
+            --glass-border-standard: rgba(255, 255, 255, 0.1);
+            --glass-shadow-standard: 0 20px 40px rgba(0, 0, 0, 0.5);
             
+            --blur-amount: 20px;
             --font-ja: 'DefaultFontJa', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
             --font-en: 'DefaultFontEn', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            
             --curtain-color: #ff8c00;
-            --blur-amount: 20px;
         }
 
         * {
@@ -43,12 +43,9 @@
         @font-face { font-family: 'DefaultFontJa'; src: local('sans-serif'); }
         @font-face { font-family: 'DefaultFontEn'; src: local('Arial'); }
 
-        .en-font, 
-        .side-time, .side-sec, 
-        .huge-clock-time, 
-        .weather-main-temp, .forecast-date, .forecast-temp,
-        .news-header, .weather-title, .weather-location, .weather-alerts {
-            font-family: var(--font-en);
+        /* 全ての英語箇所に適用するクラス */
+        .en-font {
+            font-family: var(--font-en) !important;
         }
 
         .container {
@@ -60,14 +57,25 @@
             align-items: center;
         }
 
-        /* UIの共通ガラススタイル */
+        /* UIの共通ガラススタイル (Standard) */
         .glass-panel {
-            background: var(--glass-bg);
+            background: var(--glass-bg-standard);
             backdrop-filter: blur(var(--blur-amount));
             -webkit-backdrop-filter: blur(var(--blur-amount));
-            border: 1px solid var(--glass-border);
+            border: 1px solid var(--glass-border-standard);
+            box-shadow: var(--glass-shadow-standard);
             position: relative;
-            overflow: hidden; /* カーテンのはみ出しを防ぐ */
+            overflow: hidden;
+            transition: all 0.5s ease;
+        }
+
+        /* Liquid Glass スタイル */
+        .glass-panel.liquid {
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05));
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            border-top: 1px solid rgba(255, 255, 255, 0.4);
+            border-left: 1px solid rgba(255, 255, 255, 0.4);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(255,255,255,0.1);
         }
 
         /* カーテン要素 */
@@ -79,6 +87,7 @@
             height: 100%;
             background-color: var(--curtain-color);
             z-index: 9999;
+            pointer-events: none;
         }
 
         /* サイド時計 */
@@ -90,8 +99,19 @@
             padding: 10px 20px;
             display: flex;
             align-items: baseline;
-            opacity: 0; /* 初期は非表示 */
             z-index: 10;
+            
+            /* 表示・非表示アニメーション */
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+            transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), 
+                        transform 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                        background 0.5s, backdrop-filter 0.5s;
+        }
+
+        #side-ui-panel.show {
+            opacity: 1;
+            transform: translateY(0) scale(1);
         }
 
         .side-time {
@@ -112,14 +132,13 @@
             height: calc(100% - 120px);
             margin-top: 60px;
             border-radius: 24px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
             display: flex;
             justify-content: center;
             align-items: center;
         }
 
         .mode-content {
-            display: none; /* アクティブ時以外は非表示 */
+            display: none;
             width: 100%;
             height: 100%;
             flex-direction: column;
@@ -171,15 +190,6 @@
             margin-bottom: 20px;
             letter-spacing: 3px;
         }
-        .weather-alerts {
-            font-size: 1.2vw;
-            color: #ff6b6b;
-            margin-top: 15px;
-            letter-spacing: 1px;
-            border: 1px solid #ff6b6b;
-            padding: 5px 15px;
-            border-radius: 20px;
-        }
         .weather-main-temp {
             font-size: 8vw;
             font-weight: 300;
@@ -188,6 +198,8 @@
         .weather-desc {
             font-size: 3vw;
             margin: 10px 0;
+            letter-spacing: 2px;
+            text-transform: uppercase;
         }
         .weather-minmax {
             font-size: 2vw;
@@ -211,8 +223,8 @@
             border-radius: 16px;
             width: 18%;
         }
-        .forecast-date { font-size: 1.5vw; margin-bottom: 10px; }
-        .forecast-desc { font-size: 2vw; margin-bottom: 10px; line-height: 1.4; }
+        .forecast-date { font-size: 1.5vw; margin-bottom: 15px; }
+        .forecast-desc { font-size: 1.5vw; margin-bottom: 15px; line-height: 1.4; text-transform: uppercase; }
         .forecast-temp { font-size: 1.2vw; }
 
         /* ニュースモード */
@@ -232,7 +244,7 @@
             font-size: 1.5vw;
             color: var(--text-sub);
             margin-bottom: 20px;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
         }
         .news-title {
             font-size: 3.5vw;
@@ -260,7 +272,7 @@
             background: rgba(20, 20, 20, 0.95);
             backdrop-filter: blur(30px);
             -webkit-backdrop-filter: blur(30px);
-            border-right: 1px solid var(--glass-border);
+            border-right: 1px solid var(--glass-border-standard);
             z-index: 10000;
             transition: left 0.4s cubic-bezier(0.16, 1, 0.3, 1);
             padding: 40px 30px;
@@ -277,7 +289,7 @@
             font-size: 24px;
             margin-bottom: 30px;
             padding-bottom: 10px;
-            border-bottom: 1px solid var(--glass-border);
+            border-bottom: 1px solid var(--glass-border-standard);
         }
 
         .form-group {
@@ -293,18 +305,19 @@
 
         .form-group input[type="text"],
         .form-group input[type="number"],
-        .form-group input[type="range"] {
+        .form-group select {
             width: 100%;
             padding: 10px;
             background: rgba(0,0,0,0.5);
-            border: 1px solid var(--glass-border);
+            border: 1px solid var(--glass-border-standard);
             border-radius: 8px;
             color: #fff;
             font-size: 14px;
             outline: none;
         }
-        
+
         .form-group input[type="range"] {
+            width: 100%;
             padding: 0;
             height: 4px;
         }
@@ -333,6 +346,10 @@
             font-weight: bold;
             cursor: pointer;
             margin-top: 10px;
+            transition: background 0.2s;
+        }
+        .save-btn:hover {
+            background: rgba(255,255,255,0.8);
         }
 
         #swipe-zone {
@@ -355,7 +372,6 @@
         <div id="side-ui-panel" class="glass-panel">
             <div class="side-time en-font" id="side-time-display">00:00</div>
             <div class="side-sec en-font" id="side-sec-display">00</div>
-            <div class="curtain-overlay"></div>
         </div>
 
         <div id="main-ui-panel" class="glass-panel">
@@ -367,19 +383,18 @@
 
             <div id="mode-weather" class="mode-content">
                 <div id="weather-today" class="weather-sub-panel">
-                    <div class="weather-location" id="location-name-today">--</div>
-                    <div class="weather-title">TODAY'S WEATHER</div>
-                    <div class="weather-desc" id="wt-desc">取得中...</div>
+                    <div class="weather-location en-font" id="location-name-today">--</div>
+                    <div class="weather-title en-font">TODAY'S WEATHER</div>
+                    <div class="weather-desc en-font" id="wt-desc">Loading...</div>
                     <div class="weather-main-temp en-font" id="wt-temp">--°C</div>
                     <div class="weather-minmax">
-                        <span class="temp-max en-font" id="wt-max">--°C</span> / <span class="temp-min en-font" id="wt-min">--°C</span>
+                        <span class="temp-max en-font" id="wt-max">--°C</span> <span class="en-font">/</span> <span class="temp-min en-font" id="wt-min">--°C</span>
                     </div>
-                    <div class="weather-alerts" id="wt-alerts">ALERTS: NONE</div>
                 </div>
                 
                 <div id="weather-forecast" class="weather-sub-panel">
-                    <div class="weather-location" id="location-name-forecast">--</div>
-                    <div class="weather-title">5-DAY FORECAST</div>
+                    <div class="weather-location en-font" id="location-name-forecast">--</div>
+                    <div class="weather-title en-font">5-DAY FORECAST</div>
                     <div class="forecast-container" id="forecast-box">
                         </div>
                 </div>
@@ -388,7 +403,7 @@
             <div id="mode-news" class="mode-content">
                 <div class="news-container">
                     <div class="news-text-area">
-                        <div class="news-header">LATEST NEWS</div>
+                        <div class="news-header en-font">LATEST NEWS</div>
                         <div class="news-title" id="news-title-display">ニュースを取得中...</div>
                     </div>
                     <div class="news-qr-area">
@@ -405,6 +420,21 @@
         <div class="settings-title">設定</div>
         
         <div class="form-group">
+            <label>UIデザイン</label>
+            <select id="input-glass-style">
+                <option value="standard">Standard Glass</option>
+                <option value="liquid">Liquid Glass</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>UIのぼかし具合</label>
+            <input type="range" id="input-blur" min="0" max="50">
+        </div>
+        <div class="form-group">
+            <label>カーテンの色</label>
+            <input type="color" id="input-curtain">
+        </div>
+        <div class="form-group">
             <label>時計の表示秒数 (デフォルト 60)</label>
             <input type="number" id="input-time-sec" min="10">
         </div>
@@ -415,14 +445,6 @@
         <div class="form-group">
             <label>ニュースの表示秒数 (デフォルト 60)</label>
             <input type="number" id="input-news-sec" min="10">
-        </div>
-        <div class="form-group">
-            <label>UIのぼかし具合</label>
-            <input type="range" id="input-blur" min="0" max="50">
-        </div>
-        <div class="form-group">
-            <label>カーテンの色</label>
-            <input type="color" id="input-curtain">
         </div>
         <div class="form-group">
             <label>緯度 (Latitude)</label>
@@ -455,6 +477,7 @@
     <script>
         // --- 設定管理 ---
         const DEFAULT_SETTINGS = {
+            glassStyle: 'standard',
             timeSec: 60,
             weatherSec: 60,
             newsSec: 60,
@@ -477,6 +500,7 @@
                 currentSettings = { ...DEFAULT_SETTINGS, ...saved };
             }
             
+            document.getElementById('input-glass-style').value = currentSettings.glassStyle || 'standard';
             document.getElementById('input-time-sec').value = currentSettings.timeSec;
             document.getElementById('input-weather-sec').value = currentSettings.weatherSec;
             document.getElementById('input-news-sec').value = currentSettings.newsSec;
@@ -493,6 +517,7 @@
         }
 
         async function saveSettings() {
+            currentSettings.glassStyle = document.getElementById('input-glass-style').value;
             currentSettings.timeSec = parseInt(document.getElementById('input-time-sec').value) || DEFAULT_SETTINGS.timeSec;
             currentSettings.weatherSec = parseInt(document.getElementById('input-weather-sec').value) || DEFAULT_SETTINGS.weatherSec;
             currentSettings.newsSec = parseInt(document.getElementById('input-news-sec').value) || DEFAULT_SETTINGS.newsSec;
@@ -517,7 +542,7 @@
             fetchLocationName();
             fetchWeather();
             fetchNews();
-            globalSeconds = 0; // サイクルをリセット
+            globalSeconds = 0; 
             
             document.getElementById('settings-sidebar').classList.remove('open');
         }
@@ -551,6 +576,16 @@
             }
 
             document.getElementById('dynamic-styles').textContent = styleContent;
+
+            // Liquid Glass クラスの適用
+            const panels = document.querySelectorAll('.glass-panel');
+            panels.forEach(p => {
+                if (currentSettings.glassStyle === 'liquid') {
+                    p.classList.add('liquid');
+                } else {
+                    p.classList.remove('liquid');
+                }
+            });
         }
 
         // --- データ取得 ---
@@ -561,27 +596,28 @@
             try {
                 const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${currentSettings.lat}&lon=${currentSettings.lon}&zoom=10&accept-language=en`);
                 const data = await res.json();
-                const city = data.address.city || data.address.town || data.address.village || data.address.county || 'UNKNOWN LOCATION';
+                const city = data.address.city || data.address.town || data.address.village || data.address.county || 'UNKNOWN';
                 document.getElementById('location-name-today').textContent = city.toUpperCase();
                 document.getElementById('location-name-forecast').textContent = city.toUpperCase();
             } catch (e) {
                 console.error("Location fetch error", e);
-                document.getElementById('location-name-today').textContent = 'LOCATION NOT FOUND';
-                document.getElementById('location-name-forecast').textContent = 'LOCATION NOT FOUND';
+                document.getElementById('location-name-today').textContent = 'UNKNOWN';
+                document.getElementById('location-name-forecast').textContent = 'UNKNOWN';
             }
         }
 
+        // 絵文字を削除し、全て英語のテキストで返す
         function getWeatherDisplay(code) {
-            if (code === 0) return { icon: '☀️', text: 'Sunny' };
-            if (code === 1 || code === 2 || code === 3) return { icon: '⛅', text: 'Cloudy' };
-            if (code >= 45 && code <= 48) return { icon: '🌫️', text: 'Fog' };
-            if (code >= 51 && code <= 55) return { icon: '🌧️', text: 'Drizzle' };
-            if (code >= 61 && code <= 65) return { icon: '☔', text: 'Rain' };
-            if (code >= 71 && code <= 77) return { icon: '❄️', text: 'Snow' };
-            if (code >= 80 && code <= 82) return { icon: '🌦️', text: 'Showers' };
-            if (code >= 85 && code <= 86) return { icon: '🌨️', text: 'Snow Showers' };
-            if (code >= 95 && code <= 99) return { icon: '⛈️', text: 'Thunderstorm' };
-            return { icon: '❓', text: 'Unknown' };
+            if (code === 0) return 'Sunny';
+            if (code === 1 || code === 2 || code === 3) return 'Cloudy';
+            if (code >= 45 && code <= 48) return 'Fog';
+            if (code >= 51 && code <= 55) return 'Drizzle';
+            if (code >= 61 && code <= 65) return 'Rain';
+            if (code >= 71 && code <= 77) return 'Snow';
+            if (code >= 80 && code <= 82) return 'Showers';
+            if (code >= 85 && code <= 86) return 'Snow Showers';
+            if (code >= 95 && code <= 99) return 'Thunderstorm';
+            return 'Unknown';
         }
 
         async function fetchWeather() {
@@ -617,27 +653,34 @@
             }
         }
 
-        // --- カーテンアニメーション ---
+        // --- カーテンアニメーション修正版 ---
         function playCurtain(panelId, callback) {
             const panel = document.getElementById(panelId);
             let curtain = panel.querySelector('.curtain-overlay');
             
+            // アニメーションをリセットして左外へ
             curtain.style.transition = 'none';
             curtain.style.transform = 'translateX(-100%)';
-            void curtain.offsetWidth; // Reflow
+            void curtain.offsetWidth; // Reflowを強制
             
-            curtain.style.transition = 'transform 0.4s cubic-bezier(0.65, 0, 0.35, 1)';
+            // スライドイン（画面を覆う）
+            curtain.style.transition = 'transform 0.5s cubic-bezier(0.65, 0, 0.35, 1)';
             curtain.style.transform = 'translateX(0)';
             
+            // 完全に覆い終わったら
             setTimeout(() => {
+                // DOMの書き換えを実行
                 if(callback) callback();
+                
+                // スライドアウト（右へ抜ける）
                 curtain.style.transform = 'translateX(100%)';
                 
+                // アニメーション完了後に待機位置へ戻す
                 setTimeout(() => {
                     curtain.style.transition = 'none';
                     curtain.style.transform = 'translateX(-100%)';
-                }, 400);
-            }, 400);
+                }, 500); 
+            }, 500); // 覆う時間とCSSのtransitionを合わせる
         }
 
         // --- 画面更新ロジック ---
@@ -654,6 +697,8 @@
                 const h = String(now.getHours()).padStart(2, '0');
                 const m = String(now.getMinutes()).padStart(2, '0');
                 const s = String(now.getSeconds()).padStart(2, '0');
+                
+                // 曜日は要望の形を維持しつつフォントクラスを当てているのでそのまま
                 const days = ['日', '月', '火', '水', '木', '金', '土'];
                 const dateStr = `${now.getMonth() + 1}/${now.getDate()}(${days[now.getDay()]})`;
 
@@ -699,7 +744,7 @@
                 
                 const sideNeedsCurtain = (isSideClockVisible !== nextSideClockVisible);
 
-                // メインコンテンツ更新
+                // メインコンテンツ更新（カーテン）
                 if (mainNeedsCurtain) {
                     playCurtain('main-ui-panel', () => {
                         applyMainContentDOM(nextMode, nextWeatherMode, nextNewsIndex);
@@ -712,20 +757,20 @@
                     currentMode = nextMode;
                 }
 
-                // サイド時計更新
+                // サイド時計更新（CSSアニメーション）
                 if (sideNeedsCurtain) {
-                    playCurtain('side-ui-panel', () => {
-                        document.getElementById('side-ui-panel').style.opacity = nextSideClockVisible ? '1' : '0';
-                    });
+                    const sidePanel = document.getElementById('side-ui-panel');
+                    if (nextSideClockVisible) {
+                        sidePanel.classList.add('show');
+                    } else {
+                        sidePanel.classList.remove('show');
+                    }
                     isSideClockVisible = nextSideClockVisible;
-                } else if (isSideClockVisible && document.getElementById('side-ui-panel').style.opacity === '0') {
-                     document.getElementById('side-ui-panel').style.opacity = '1';
                 }
 
             } catch (e) {
                 console.error("Loop error", e);
             } finally {
-                // エラーが起きてもタイマーが止まらないよう必ずインクリメント
                 globalSeconds++;
             }
         }
@@ -753,9 +798,9 @@
                     if (weatherData && weatherData.current_weather) {
                         const cw = weatherData.current_weather;
                         const daily = weatherData.daily;
-                        const wd = getWeatherDisplay(cw.weathercode);
+                        const wText = getWeatherDisplay(cw.weathercode);
                         
-                        document.getElementById('wt-desc').textContent = `${wd.icon} ${wd.text}`;
+                        document.getElementById('wt-desc').textContent = wText;
                         document.getElementById('wt-temp').textContent = `${cw.temperature}°C`;
                         document.getElementById('wt-max').textContent = `${daily.temperature_2m_max[0]}°C`;
                         document.getElementById('wt-min').textContent = `${daily.temperature_2m_min[0]}°C`;
@@ -772,14 +817,14 @@
                         for (let i = 1; i <= 5; i++) {
                             const dateObj = new Date(daily.time[i]);
                             const dStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
-                            const wd = getWeatherDisplay(daily.weathercode[i]);
+                            const wText = getWeatherDisplay(daily.weathercode[i]);
                             const maxT = daily.temperature_2m_max[i];
                             const minT = daily.temperature_2m_min[i];
 
                             box.insertAdjacentHTML('beforeend', `
                                 <div class="forecast-item">
                                     <div class="forecast-date en-font">${dStr}</div>
-                                    <div class="forecast-desc">${wd.icon}<br>${wd.text}</div>
+                                    <div class="forecast-desc en-font">${wText}</div>
                                     <div class="forecast-temp en-font">
                                         <span class="temp-max">${maxT}°</span> / <span class="temp-min">${minT}°</span>
                                     </div>
@@ -797,7 +842,7 @@
                     document.getElementById('news-title-display').textContent = item.title;
                     qr.set({ value: item.link });
                 } else {
-                    document.getElementById('news-title-display').textContent = 'ニュースを取得中です...';
+                    document.getElementById('news-title-display').textContent = 'Loading news...';
                 }
             }
         }
